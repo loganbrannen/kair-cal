@@ -8,6 +8,7 @@ import {
   type DotColor,
   type CalendarData,
   type DayColorCode,
+  type TimeBlock,
   WEEKDAYS,
   getDaysInMonth,
   getFirstDayOfMonth,
@@ -29,6 +30,7 @@ interface MonthViewProps {
   onDayUpdate: (month: number, day: number, data: DayData) => void;
   selectedDotColor: DotColor;
   onDayClick: (day: number) => void;
+  getBlocksForDate?: (date: Date) => TimeBlock[];
 }
 
 function DayCellLarge({
@@ -36,6 +38,7 @@ function DayCellLarge({
   month,
   year,
   data,
+  allBlocks,
   isCurrentDay,
   onUpdate,
   selectedDotColor,
@@ -45,6 +48,7 @@ function DayCellLarge({
   month: number;
   year: number;
   data: DayData;
+  allBlocks: TimeBlock[]; // All blocks including recurring
   isCurrentDay: boolean;
   onUpdate: (data: DayData) => void;
   selectedDotColor: DotColor;
@@ -52,10 +56,9 @@ function DayCellLarge({
 }) {
   const [colorPickerPos, setColorPickerPos] = useState<{ x: number; y: number } | null>(null);
 
-  const timeBlocks = data.timeBlocks || [];
-  const sortedBlocks = [...timeBlocks].sort((a, b) => a.startTime.localeCompare(b.startTime));
-  const visibleBlocks = sortedBlocks.slice(0, 3);
-  const moreCount = timeBlocks.length - 3;
+  // Use allBlocks which includes recurring blocks (already sorted)
+  const visibleBlocks = allBlocks.slice(0, 3);
+  const moreCount = allBlocks.length - 3;
 
   // Get day color info
   const dayColorInfo = data.dayColor ? DAY_COLORS[data.dayColor] : null;
@@ -73,8 +76,16 @@ function DayCellLarge({
     setColorPickerPos(null);
   };
 
+  // Double-click navigates to day view
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDayClick();
+  };
+
   const cellContent = (
     <div
+      onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
       className={cn(
         "relative border-r border-b border-border p-1 cursor-pointer min-h-0 flex flex-col gap-0.5 overflow-hidden h-full",
@@ -163,6 +174,7 @@ export function MonthView({
   onDayUpdate,
   selectedDotColor,
   onDayClick,
+  getBlocksForDate,
 }: MonthViewProps) {
   const daysInMonth = getDaysInMonth(month, year);
   const firstDay = getFirstDayOfMonth(month, year);
@@ -177,7 +189,7 @@ export function MonthView({
   const monthData = data[monthKey] || {};
 
   return (
-    <div className="h-full flex flex-col border-l border-t border-border">
+    <div className="h-full flex flex-col">
       {/* Weekday headers */}
       <div className="grid grid-cols-7 border-b border-border">
         {WEEKDAYS.map((day, i) => (
@@ -197,32 +209,36 @@ export function MonthView({
       >
         {/* Empty cells */}
         {emptyDays.map((_, i) => (
-          <div key={`empty-${i}`} className="border-r border-b border-border/50" />
+          <div key={`empty-${i}`} className="border-r border-b border-border" />
         ))}
 
         {/* Day cells */}
-        {days.map((day) => {
-          const dayKey = `${day}`;
+        {days.map((d) => {
+          const dayKey = `${d}`;
           const dayData = monthData[dayKey] || { note: "", dots: [] };
+          const dateObj = new Date(year, month, d);
+          // Get all blocks including recurring ones
+          const allBlocks = getBlocksForDate ? getBlocksForDate(dateObj) : (dayData.timeBlocks || []);
 
           return (
             <DayCellLarge
-              key={day}
-              day={day}
+              key={d}
+              day={d}
               month={month}
               year={year}
               data={dayData}
-              isCurrentDay={isToday(year, month, day)}
-              onUpdate={(newData) => onDayUpdate(month, day, newData)}
+              allBlocks={allBlocks}
+              isCurrentDay={isToday(year, month, d)}
+              onUpdate={(newData) => onDayUpdate(month, d, newData)}
               selectedDotColor={selectedDotColor}
-              onDayClick={() => onDayClick(day)}
+              onDayClick={() => onDayClick(d)}
             />
           );
         })}
 
         {/* Fill remaining cells */}
         {Array.from({ length: remainingCells }).map((_, i) => (
-          <div key={`fill-${i}`} className="border-r border-b border-border/50" />
+          <div key={`fill-${i}`} className="border-r border-b border-border" />
         ))}
       </div>
     </div>

@@ -1,889 +1,554 @@
-[00:00:01.522] Server  LOG     
-[00:00:01.522] Server  LOG        We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
-[00:00:01.523] Server  LOG        The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
-
-[00:00:01.523] Server  LOG        	- include was updated to add '.next/dev/types/**/*.ts'
-[00:00:01.523] Server  LOG     
-[00:00:01.523] Server  LOG        The following mandatory changes were made to your tsconfig.json:
-
-[00:00:01.523] Server  LOG        	- jsx was set to react-jsx (next.js uses the React automatic runtime)
-[00:00:01.523] Server  LOG     
-[00:00:01.585] Server  LOG      ✓ Ready in 1407ms
-[00:00:02.941] Server  ERROR    ⨯ ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-
-[00:00:03.485] Browser ERROR   uncaughtError: Error: ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-
-[00:00:03.633] Browser ERROR   ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:00:03.782] Server  ERROR    ⨯ ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-
-[00:00:03.862] Browser ERROR   uncaughtError: Error: ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-
-[00:00:03.999] Browser ERROR   ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:00:03.999] Browser ERROR   ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:00:04.178] Server  ERROR    ⨯ ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-
-[00:00:04.234] Browser ERROR   uncaughtError: Error: ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-
-[00:00:04.369] Browser ERROR   ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:00:04.369] Browser ERROR   ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:00:18.343] Server  ERROR    ⨯ ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-
-[00:00:18.456] Browser ERROR   uncaughtError: Error: ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-
-[00:00:18.499] Browser ERROR   ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:00:18.503] Server  ERROR    ⨯ ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-
-[00:00:18.544] Browser ERROR   uncaughtError: Error: ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-
-[00:00:18.681] Browser ERROR   ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:00:18.681] Browser ERROR   ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:00:19.669] Browser ERROR   ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:00:19.669] Browser ERROR   ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:00:19.669] Browser ERROR   ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:00:19.669] Browser ERROR   ./components/day-cell.tsx:171:5
-Parsing ecmascript source code failed
-  169 |       ) : null}
-  170 |     </div>
-> 171 |     {colorPickerPos && (
-      |     ^
-  172 |       <DayColorPicker
-  173 |         currentColor={data.dayColor ?? null}
-  174 |         onColorChange={handleColorChange}
-
-Expected ',', got '{'
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:01:37.967] Browser ERROR   ./components/day-cell.tsx:182:1
-Parsing ecmascript source code failed
-  180 |     )}
-  181 |   );
-> 182 | }
-      | ^
-  183 |
-
-Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:01:38.670] Browser ERROR   ./components/day-cell.tsx:182:1
-Parsing ecmascript source code failed
-  180 |     )}
-  181 |   );
-> 182 | }
-      | ^
-  183 |
-
-Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
-
-Import traces:
-  Client Component Browser:
-    ./components/day-cell.tsx [Client Component Browser]
-    ./components/month-grid.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Client Component Browser]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./components/day-cell.tsx [Client Component SSR]
-    ./components/month-grid.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Client Component SSR]
-    ./components/year-calendar.tsx [Server Component]
-    ./app/page.tsx [Server Component]
-[00:01:41.698] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:01:41.714] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:01:42.099] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:01:42.099] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:01:42.099] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769568440853}
-[00:01:42.671] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:01:42.671] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:01:42.671] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769568440853}
-[00:21:39.705] Server  LOG      ✓ Compiled in 69ms
-[00:22:05.720] Server  LOG      ✓ Compiled in 45ms
-[00:22:06.670] Browser ERROR   uncaughtError: ReferenceError: handleCellClick is not defined
-[00:22:20.535] Server  LOG      ✓ Compiled in 154ms
-[00:22:20.565] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
-[00:22:21.035] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:22:21.670] Browser ERROR   uncaughtError: Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
-
-- A server/client branch `if (typeof window !== 'undefined')`.
-- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
-- Date formatting in a user's locale which doesn't match the server.
-- External changing data without sending a snapshot of it along with the HTML.
-- Invalid HTML tag nesting.
-
-It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
-
-https://react.dev/link/hydration-mismatch
-
-  ...
-    <Popper __scopePopper={{Popper:[...]}}>
-      <PopperProvider scope={{Popper:[...]}} anchor={null} onAnchorChange={function bound dispatchSetState}>
-        <PopoverProvider scope={undefined} contentId="radix-_R_e..." triggerRef={{current:null}} open={false} ...>
-          <PopoverTrigger asChild={true}>
-            <PopoverTrigger data-slot="popover-tr..." asChild={true}>
-              <PopperAnchor asChild={true} __scopePopper={{Popper:[...]}}>
-                <Primitive.div asChild={true} ref={function}>
-                  <Slot ref={function}>
-                    <SlotClone ref={function}>
-                      <Primitive.button type="button" aria-haspopup="dialog" aria-expanded={false} ...>
-                        <Slot type="button" aria-haspopup="dialog" aria-expanded={false} aria-controls="radix-_R_e..." ...>
-                          <SlotClone type="button" aria-haspopup="dialog" aria-expanded={false} ...>
-                            <div onClick={function} onContextMenu={function handleContextMenu} className="relative b..." ...>
-                              <span>
-+                             <div className="absolute bottom-0 left-0 right-0 flex h-1">
-          ...
-
-[00:22:21.670] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:22:21.670] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:22:21.670] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:22:21.670] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569680380}
-[00:22:21.670] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569680381}
-[00:22:31.934] Server  LOG      ✓ Compiled in 56ms
-[00:22:53.251] Server  LOG      ✓ Compiled in 36ms
-[00:23:03.499] Server  LOG      ✓ Compiled in 35ms
-[00:23:28.364] Server  LOG      ✓ Compiled in 48ms
-[00:23:40.329] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:23:41.669] Browser ERROR   uncaughtError: Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
-
-- A server/client branch `if (typeof window !== 'undefined')`.
-- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
-- Date formatting in a user's locale which doesn't match the server.
-- External changing data without sending a snapshot of it along with the HTML.
-- Invalid HTML tag nesting.
-
-It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
-
-https://react.dev/link/hydration-mismatch
-
-  ...
-    <Popper __scopePopper={{Popper:[...]}}>
-      <PopperProvider scope={{Popper:[...]}} anchor={null} onAnchorChange={function bound dispatchSetState}>
-        <PopoverProvider scope={undefined} contentId="radix-_R_e..." triggerRef={{current:null}} open={false} ...>
-          <PopoverTrigger asChild={true}>
-            <PopoverTrigger data-slot="popover-tr..." asChild={true}>
-              <PopperAnchor asChild={true} __scopePopper={{Popper:[...]}}>
-                <Primitive.div asChild={true} ref={function}>
-                  <Slot ref={function}>
-                    <SlotClone ref={function}>
-                      <Primitive.button type="button" aria-haspopup="dialog" aria-expanded={false} ...>
-                        <Slot type="button" aria-haspopup="dialog" aria-expanded={false} aria-controls="radix-_R_e..." ...>
-                          <SlotClone type="button" aria-haspopup="dialog" aria-expanded={false} ...>
-                            <div onClick={function} onContextMenu={function handleContextMenu} className="relative b..." ...>
-                              <span>
-+                             <div className="absolute bottom-0 left-0 right-0 flex h-1">
-          ...
-
-[00:23:41.669] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:23:41.669] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:23:41.669] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:23:41.669] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569759623}
-[00:23:41.669] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569759623}
-[00:24:29.939] Server  LOG      ✓ Compiled in 37ms
-[00:24:43.850] Server  LOG      ✓ Compiled in 40ms
-[00:24:52.092] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:24:52.669] Browser ERROR   uncaughtError: Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
-
-- A server/client branch `if (typeof window !== 'undefined')`.
-- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
-- Date formatting in a user's locale which doesn't match the server.
-- External changing data without sending a snapshot of it along with the HTML.
-- Invalid HTML tag nesting.
-
-It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
-
-https://react.dev/link/hydration-mismatch
-
-  ...
-    <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{lazyData:null, ...}} segmentPath={[...]} ...>
-      <SegmentViewNode type="page" pagePath="page.tsx">
-        <SegmentTrieNode>
-        <Home>
-          <YearCalendar>
-            <div className="h-screen w...">
-              <header>
-              <main className="flex-1 min...">
-                <div className="h-full gri...">
-                  <MonthGrid month={0} year={2026} data={{...}} onDayUpdate={function onDayUpdate} selectedDotColor={1} ...>
-                    <div className="flex flex-...">
-                      <div>
-                      <div className="flex-1 gri..." style={{...}}>
-                        <div>
-                        <div>
-                        <div>
-                        <div>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell day={27} month={0} year={2026} data={{note:"",dots:[...], ...}} isToday={true} ...>
-                          <QuickAddPopover date={Date} data={{note:"",dots:[...], ...}} onUpdate={function onUpdate} ...>
-                            <div onClick={function handleShiftClick} onContextMenu={function handleContextMenu} ...>
-                              <span>
-+                             <div className="absolute bottom-0 left-0 right-0 flex h-1">
-                        ...
-                        ...
-                  ...
-              ...
-      ...
-
-[00:24:52.670] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:24:52.670] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:24:52.670] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:24:52.670] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569831171}
-[00:24:52.670] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569831171}
-[00:26:54.055] Server  LOG      ✓ Compiled in 63ms
-[00:27:02.904] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:27:03.670] Browser ERROR   uncaughtError: Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
-
-- A server/client branch `if (typeof window !== 'undefined')`.
-- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
-- Date formatting in a user's locale which doesn't match the server.
-- External changing data without sending a snapshot of it along with the HTML.
-- Invalid HTML tag nesting.
-
-It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
-
-https://react.dev/link/hydration-mismatch
-
-  ...
-    <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{lazyData:null, ...}} segmentPath={[...]} ...>
-      <SegmentViewNode type="page" pagePath="page.tsx">
-        <SegmentTrieNode>
-        <Home>
-          <YearCalendar>
-            <div className="h-screen w...">
-              <header>
-              <main className="flex-1 min...">
-                <div className="h-full gri...">
-                  <MonthGrid month={0} year={2026} data={{...}} onDayUpdate={function onDayUpdate} selectedDotColor={1} ...>
-                    <div className="flex flex-...">
-                      <div>
-                      <div className="flex-1 gri..." style={{...}}>
-                        <div>
-                        <div>
-                        <div>
-                        <div>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell>
-                        <DayCell day={27} month={0} year={2026} data={{note:"",dots:[...], ...}} isToday={true} ...>
-                          <QuickAddPopover date={Date} data={{note:"",dots:[...], ...}} onUpdate={function onUpdate} ...>
-                            <div onClick={function handleShiftClick} onContextMenu={function handleContextMenu} ...>
-                              <span>
-+                             <div className="absolute bottom-0 left-0 right-0 flex h-1">
-                        ...
-                        ...
-                  ...
-              ...
-      ...
-
-[00:27:03.670] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:27:03.670] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:27:03.670] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:27:03.670] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569961959}
-[00:27:03.670] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569961959}
+[00:00:00.531] Server  LOG      ✓ Ready in 325ms
+[00:00:02.153] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:02.155] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:02.211] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:02.514] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:00:02.514] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:00:02.514] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769572418886}
+[00:00:02.575] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:00:02.575] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:00:02.575] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769572418947}
+[00:00:03.057] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:00:03.058] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:00:03.058] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/?refresh=1 color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/?refresh=1","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769572419106}
+[00:02:52.141] Server  LOG      ✓ Compiled in 39ms
+[00:03:06.260] Server  LOG      ✓ Compiled in 42ms
+[00:03:12.830] Server  LOG      ✓ Compiled in 36ms
+[00:03:24.851] Server  LOG      ✓ Compiled in 33ms
+[00:03:33.514] Server  LOG      ✓ Compiled in 34ms
+[00:03:58.038] Server  LOG      ✓ Compiled in 66ms
+[00:04:07.064] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:04:08.056] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:04:08.056] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:04:08.056] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769572663959}
+[00:05:56.746] Server  LOG      ✓ Compiled in 78ms
+[00:06:05.957] Server  LOG      ✓ Compiled in 70ms
+[00:09:49.585] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:09:51.056] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:09:51.056] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:09:51.056] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769573006517}
+[00:11:59.030] Server  LOG      ✓ Compiled in 64ms
+[00:12:07.291] Server  LOG      ✓ Compiled in 54ms
+[00:13:12.099] Server  LOG      ✓ Compiled in 109ms
+[00:13:24.555] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:13:26.056] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:13:26.056] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:13:26.056] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769573221460}
+[00:16:11.427] Server  LOG      ✓ Compiled in 40ms
+[00:22:51.526] Server  LOG      ✓ Compiled in 66ms
+[00:22:52.056] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:22:52.056] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:23:00.904] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:23:00.906] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:23:00.999] Server  LOG      ✓ Compiled in 29ms
+[00:23:01.065] Server  ERROR    ⨯ ReferenceError: DURATION_PRESETS is not defined
+[00:23:01.082] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:23:01.082] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:23:01.121] Server  ERROR    ⨯ ReferenceError: DURATION_PRESETS is not defined
+[00:23:01.286] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:23:01.311] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:23:02.057] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:23:02.057] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:23:08.007] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:23:08.007] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:23:08.051] Server  LOG      ✓ Compiled in 47ms
+[00:23:08.083] Server  ERROR    ⨯ ReferenceError: DURATION_PRESETS is not defined
+[00:23:08.113] Server  ERROR    ⨯ ReferenceError: DURATION_PRESETS is not defined
+[00:23:08.179] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:23:08.187] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:23:09.055] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:23:09.056] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:23:20.190] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:23:20.190] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:23:20.241] Server  LOG      ✓ Compiled in 28ms
+[00:23:20.274] Server  ERROR    ⨯ ReferenceError: DURATION_PRESETS is not defined
+[00:23:20.300] Server  ERROR    ⨯ ReferenceError: DURATION_PRESETS is not defined
+[00:23:20.357] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:23:20.365] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:23:21.056] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:23:21.056] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:23:32.609] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:23:32.609] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:23:32.650] Server  LOG      ✓ Compiled in 28ms
+[00:23:32.681] Server  ERROR    ⨯ ReferenceError: DURATION_PRESETS is not defined
+[00:23:32.709] Server  ERROR    ⨯ ReferenceError: DURATION_PRESETS is not defined
+[00:23:32.768] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:23:32.778] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:23:33.055] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:23:33.056] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:24:30.450] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:24:30.450] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:24:30.546] Server  LOG      ✓ Compiled in 71ms
+[00:24:30.953] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:24:30.954] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:24:32.055] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:24:32.055] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:24:32.055] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769573887847}
+[00:24:32.055] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:24:32.055] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:24:32.055] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769573887848}
+[00:24:48.262] Server  LOG      ✓ Compiled in 92ms
+[00:24:48.994] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:24:48.995] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:24:49.015] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:24:49.364] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:24:49.364] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:24:49.364] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:24:49.364] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:24:49.364] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:24:49.364] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:24:49.364] Browser ERROR   uncaughtError: ReferenceError: DURATION_PRESETS is not defined
+[00:24:49.364] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769573905656}
+[00:24:49.364] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:24:49.512] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:24:49.920] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:24:49.920] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:24:49.920] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769573906319}
+[00:24:55.407] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:24:56.056] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:24:56.056] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:24:56.056] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769573912315}
+[00:25:45.966] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:25:46.373] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:25:46.373] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:25:46.373] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769573962771}
+[00:32:22.946] Server  LOG      ✓ Compiled in 31ms
+[00:32:29.004] Server  LOG      ✓ Compiled in 28ms
+[00:32:40.242] Server  LOG      ✓ Compiled in 35ms
+[00:32:45.655] Server  LOG      ✓ Compiled in 28ms
+[00:33:00.728] Server  LOG      ✓ Compiled in 31ms
+[00:33:06.156] Server  LOG      ✓ Compiled in 26ms
+[00:33:19.272] Server  LOG      ✓ Compiled in 34ms
+[00:33:29.240] Server  LOG      ✓ Compiled in 28ms
+[00:33:40.269] Server  LOG      ✓ Compiled in 27ms
+[00:33:48.341] Server  LOG      ✓ Compiled in 26ms
+[00:34:10.348] Server  LOG      ✓ Compiled in 33ms
+[00:34:22.794] Server  LOG      ✓ Compiled in 33ms
+[00:34:42.400] Server  LOG      ✓ Compiled in 35ms
+[00:34:53.855] Server  LOG      ✓ Compiled in 28ms
+[00:35:06.258] Server  LOG      ✓ Compiled in 28ms
+[00:35:53.136] Server  LOG      ✓ Compiled in 63ms
+[00:36:25.428] Server  LOG      ✓ Compiled in 33ms
+[00:36:37.393] Server  LOG      ✓ Compiled in 34ms
+[00:36:48.504] Server  LOG      ✓ Compiled in 26ms
+[00:36:53.367] Server  LOG      ✓ Compiled in 26ms
+[00:37:01.800] Server  LOG      ✓ Compiled in 33ms
+[00:37:14.088] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:37:15.056] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:37:15.056] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:37:15.056] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769574650974}
+[00:41:52.807] Server  LOG      ✓ Compiled in 31ms
+[00:42:15.952] Server  LOG      ✓ Compiled in 37ms
+[00:42:35.002] Server  LOG      ✓ Compiled in 46ms
+[00:42:35.047] Browser ERROR   The final argument passed to %s changed size between renders. The order and size of this array must remain constant.
+
+Previous: %s
+Incoming: %s useEffect [false, [object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object], 0, (action)=>{
+            switch(action.type){
+                case "navigate":
+                    if (action.payload.date) {
+                        setYear(action.payload.date.getFullYear());
+                        setMonth(action.payload.date.getMonth());
+                        setDay(action.payload.date.getDate());
+                    }
+                    break;
+                case "set_view":
+                    if (action.payload.view) {
+                        setViewMode(action.payload.view);
+                    }
+                    break;
+                case "add_note":
+                    if (action.payload.date && action.payload.note) {
+                        const d = action.payload.date;
+                        const y = d.getFullYear();
+                        const m = d.getMonth();
+                        const dayNum = d.getDate();
+                        const existing = getData(y, m, dayNum);
+                        handleUpdate(y, m, dayNum, {
+                            ...existing,
+                            note: action.payload.note
+                        });
+                        // Navigate to the day
+                        setYear(y);
+                        setMonth(m);
+                        setDay(dayNum);
+                    }
+                    break;
+                case "add_dot":
+                    if (action.payload.date && action.payload.dotColor) {
+                        const d = action.payload.date;
+                        const y = d.getFullYear();
+                        const m = d.getMonth();
+                        const dayNum = d.getDate();
+                        const existing = getData(y, m, dayNum);
+                        const dots = [
+                            ...existing.dots
+                        ];
+                        if (!dots.includes(action.payload.dotColor)) {
+                            dots.push(action.payload.dotColor);
+                        }
+                        setData({
+                            "YearCalendar.useCallback[handleOmniAction]": (prev)=>{
+                                const monthKey = `${y}-${m}`;
+                                const newData = {
+                                    ...prev,
+                                    [monthKey]: {
+                                        ...prev[monthKey],
+                                        [`${dayNum}`]: {
+                                            ...existing,
+                                            dots
+                                        }
+                                    }
+                                };
+                                saveData(newData);
+                                return newData;
+                            }
+                        }["YearCalendar.useCallback[handleOmniAction]"]);
+                    }
+                    break;
+            }
+        }] [false, [object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object], 0, (action)=>{
+            switch(action.type){
+                case "navigate":
+                    if (action.payload.date) {
+                        setYear(action.payload.date.getFullYear());
+                        setMonth(action.payload.date.getMonth());
+                        setDay(action.payload.date.getDate());
+                    }
+                    break;
+                case "set_view":
+                    if (action.payload.view) {
+                        setViewMode(action.payload.view);
+                    }
+                    break;
+                case "add_note":
+                    if (action.payload.date && action.payload.note) {
+                        const d = action.payload.date;
+                        const y = d.getFullYear();
+                        const m = d.getMonth();
+                        const dayNum = d.getDate();
+                        const existing = getData(y, m, dayNum);
+                        handleUpdate(y, m, dayNum, {
+                            ...existing,
+                            note: action.payload.note
+                        });
+                        // Navigate to the day
+                        setYear(y);
+                        setMonth(m);
+                        setDay(dayNum);
+                    }
+                    break;
+                case "add_dot":
+                    if (action.payload.date && action.payload.dotColor) {
+                        const d = action.payload.date;
+                        const y = d.getFullYear();
+                        const m = d.getMonth();
+                        const dayNum = d.getDate();
+                        const existing = getData(y, m, dayNum);
+                        const dots = [
+                            ...existing.dots
+                        ];
+                        if (!dots.includes(action.payload.dotColor)) {
+                            dots.push(action.payload.dotColor);
+                        }
+                        setData({
+                            "YearCalendar.useCallback[handleOmniAction]": (prev)=>{
+                                const monthKey = `${y}-${m}`;
+                                const newData = {
+                                    ...prev,
+                                    [monthKey]: {
+                                        ...prev[monthKey],
+                                        [`${dayNum}`]: {
+                                            ...existing,
+                                            dots
+                                        }
+                                    }
+                                };
+                                saveData(newData);
+                                return newData;
+                            }
+                        }["YearCalendar.useCallback[handleOmniAction]"]);
+                    }
+                    break;
+            }
+        }, false, false]
+[00:42:35.054] Browser ERROR   The final argument passed to %s changed size between renders. The order and size of this array must remain constant.
+
+Previous: %s
+Incoming: %s useEffect [true, [object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object], 0, (action)=>{
+            switch(action.type){
+                case "navigate":
+                    if (action.payload.date) {
+                        setYear(action.payload.date.getFullYear());
+                        setMonth(action.payload.date.getMonth());
+                        setDay(action.payload.date.getDate());
+                    }
+                    break;
+                case "set_view":
+                    if (action.payload.view) {
+                        setViewMode(action.payload.view);
+                    }
+                    break;
+                case "add_note":
+                    if (action.payload.date && action.payload.note) {
+                        const d = action.payload.date;
+                        const y = d.getFullYear();
+                        const m = d.getMonth();
+                        const dayNum = d.getDate();
+                        const existing = getData(y, m, dayNum);
+                        handleUpdate(y, m, dayNum, {
+                            ...existing,
+                            note: action.payload.note
+                        });
+                        // Navigate to the day
+                        setYear(y);
+                        setMonth(m);
+                        setDay(dayNum);
+                    }
+                    break;
+                case "add_dot":
+                    if (action.payload.date && action.payload.dotColor) {
+                        const d = action.payload.date;
+                        const y = d.getFullYear();
+                        const m = d.getMonth();
+                        const dayNum = d.getDate();
+                        const existing = getData(y, m, dayNum);
+                        const dots = [
+                            ...existing.dots
+                        ];
+                        if (!dots.includes(action.payload.dotColor)) {
+                            dots.push(action.payload.dotColor);
+                        }
+                        setData({
+                            "YearCalendar.useCallback[handleOmniAction]": (prev)=>{
+                                const monthKey = `${y}-${m}`;
+                                const newData = {
+                                    ...prev,
+                                    [monthKey]: {
+                                        ...prev[monthKey],
+                                        [`${dayNum}`]: {
+                                            ...existing,
+                                            dots
+                                        }
+                                    }
+                                };
+                                saveData(newData);
+                                return newData;
+                            }
+                        }["YearCalendar.useCallback[handleOmniAction]"]);
+                    }
+                    break;
+            }
+        }] [true, [object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object], 0, (action)=>{
+            switch(action.type){
+                case "navigate":
+                    if (action.payload.date) {
+                        setYear(action.payload.date.getFullYear());
+                        setMonth(action.payload.date.getMonth());
+                        setDay(action.payload.date.getDate());
+                    }
+                    break;
+                case "set_view":
+                    if (action.payload.view) {
+                        setViewMode(action.payload.view);
+                    }
+                    break;
+                case "add_note":
+                    if (action.payload.date && action.payload.note) {
+                        const d = action.payload.date;
+                        const y = d.getFullYear();
+                        const m = d.getMonth();
+                        const dayNum = d.getDate();
+                        const existing = getData(y, m, dayNum);
+                        handleUpdate(y, m, dayNum, {
+                            ...existing,
+                            note: action.payload.note
+                        });
+                        // Navigate to the day
+                        setYear(y);
+                        setMonth(m);
+                        setDay(dayNum);
+                    }
+                    break;
+                case "add_dot":
+                    if (action.payload.date && action.payload.dotColor) {
+                        const d = action.payload.date;
+                        const y = d.getFullYear();
+                        const m = d.getMonth();
+                        const dayNum = d.getDate();
+                        const existing = getData(y, m, dayNum);
+                        const dots = [
+                            ...existing.dots
+                        ];
+                        if (!dots.includes(action.payload.dotColor)) {
+                            dots.push(action.payload.dotColor);
+                        }
+                        setData({
+                            "YearCalendar.useCallback[handleOmniAction]": (prev)=>{
+                                const monthKey = `${y}-${m}`;
+                                const newData = {
+                                    ...prev,
+                                    [monthKey]: {
+                                        ...prev[monthKey],
+                                        [`${dayNum}`]: {
+                                            ...existing,
+                                            dots
+                                        }
+                                    }
+                                };
+                                saveData(newData);
+                                return newData;
+                            }
+                        }["YearCalendar.useCallback[handleOmniAction]"]);
+                    }
+                    break;
+            }
+        }, false, false]
+[00:42:35.055] Browser ERROR   The final argument passed to %s changed size between renders. The order and size of this array must remain constant.
+
+Previous: %s
+Incoming: %s useEffect [false, [object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object], 0, (action)=>{
+            switch(action.type){
+                case "navigate":
+                    if (action.payload.date) {
+                        setYear(action.payload.date.getFullYear());
+                        setMonth(action.payload.date.getMonth());
+                        setDay(action.payload.date.getDate());
+                    }
+                    break;
+                case "set_view":
+                    if (action.payload.view) {
+                        setViewMode(action.payload.view);
+                    }
+                    break;
+                case "add_note":
+                    if (action.payload.date && action.payload.note) {
+                        const d = action.payload.date;
+                        const y = d.getFullYear();
+                        const m = d.getMonth();
+                        const dayNum = d.getDate();
+                        const existing = getData(y, m, dayNum);
+                        handleUpdate(y, m, dayNum, {
+                            ...existing,
+                            note: action.payload.note
+                        });
+                        // Navigate to the day
+                        setYear(y);
+                        setMonth(m);
+                        setDay(dayNum);
+                    }
+                    break;
+                case "add_dot":
+                    if (action.payload.date && action.payload.dotColor) {
+                        const d = action.payload.date;
+                        const y = d.getFullYear();
+                        const m = d.getMonth();
+                        const dayNum = d.getDate();
+                        const existing = getData(y, m, dayNum);
+                        const dots = [
+                            ...existing.dots
+                        ];
+                        if (!dots.includes(action.payload.dotColor)) {
+                            dots.push(action.payload.dotColor);
+                        }
+                        setData({
+                            "YearCalendar.useCallback[handleOmniAction]": (prev)=>{
+                                const monthKey = `${y}-${m}`;
+                                const newData = {
+                                    ...prev,
+                                    [monthKey]: {
+                                        ...prev[monthKey],
+                                        [`${dayNum}`]: {
+                                            ...existing,
+                                            dots
+                                        }
+                                    }
+                                };
+                                saveData(newData);
+                                return newData;
+                            }
+                        }["YearCalendar.useCallback[handleOmniAction]"]);
+                    }
+                    break;
+            }
+        }] [false, [object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object], 0, (action)=>{
+            switch(action.type){
+                case "navigate":
+                    if (action.payload.date) {
+                        setYear(action.payload.date.getFullYear());
+                        setMonth(action.payload.date.getMonth());
+                        setDay(action.payload.date.getDate());
+                    }
+                    break;
+                case "set_view":
+                    if (action.payload.view) {
+                        setViewMode(action.payload.view);
+                    }
+                    break;
+                case "add_note":
+                    if (action.payload.date && action.payload.note) {
+                        const d = action.payload.date;
+                        const y = d.getFullYear();
+                        const m = d.getMonth();
+                        const dayNum = d.getDate();
+                        const existing = getData(y, m, dayNum);
+                        handleUpdate(y, m, dayNum, {
+                            ...existing,
+                            note: action.payload.note
+                        });
+                        // Navigate to the day
+                        setYear(y);
+                        setMonth(m);
+                        setDay(dayNum);
+                    }
+                    break;
+                case "add_dot":
+                    if (action.payload.date && action.payload.dotColor) {
+                        const d = action.payload.date;
+                        const y = d.getFullYear();
+                        const m = d.getMonth();
+                        const dayNum = d.getDate();
+                        const existing = getData(y, m, dayNum);
+                        const dots = [
+                            ...existing.dots
+                        ];
+                        if (!dots.includes(action.payload.dotColor)) {
+                            dots.push(action.payload.dotColor);
+                        }
+                        setData({
+                            "YearCalendar.useCallback[handleOmniAction]": (prev)=>{
+                                const monthKey = `${y}-${m}`;
+                                const newData = {
+                                    ...prev,
+                                    [monthKey]: {
+                                        ...prev[monthKey],
+                                        [`${dayNum}`]: {
+                                            ...existing,
+                                            dots
+                                        }
+                                    }
+                                };
+                                saveData(newData);
+                                return newData;
+                            }
+                        }["YearCalendar.useCallback[handleOmniAction]"]);
+                    }
+                    break;
+            }
+        }, false, false]
+[00:42:51.380] Server  LOG      ✓ Compiled in 31ms
+[00:42:58.202] Server  LOG      ✓ Compiled in 29ms
+[00:43:07.028] Server  LOG      ✓ Compiled in 31ms
+[00:43:23.007] Server  LOG      ✓ Compiled in 32ms
+[00:43:33.372] Server  LOG      ✓ Compiled in 26ms
+[00:43:42.945] Server  LOG      ✓ Compiled in 72ms
+[00:43:56.550] Server  LOG      ✓ Compiled in 29ms
+[00:44:02.020] Server  LOG      ✓ Compiled in 25ms
+[00:44:10.203] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:44:11.057] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:44:11.057] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:44:11.057] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769575067163}
+[00:46:14.719] Server  LOG      ✓ Compiled in 39ms
+[00:48:01.803] Server  LOG      ✓ Compiled in 34ms
+[00:50:06.704] Server  LOG      ✓ Compiled in 33ms
+[00:50:12.375] Server  LOG      ✓ Compiled in 36ms

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { MonthGrid } from "./month-grid";
 import { MonthView } from "./month-view";
 import { WeekView } from "./week-view";
@@ -13,18 +13,20 @@ import {
   type DotColor,
   type CalendarData,
   type ViewMode,
+  type TimeBlock,
   MONTH_NAMES,
   MONTH_NAMES_SHORT,
   getWeekStart,
+  getBlocksForDate,
 } from "./calendar-types";
 
 const STORAGE_KEY = "field-memo-data";
+const MAX_UNDO_HISTORY = 50;
 
 // Default dot color for legacy compatibility (dots are being phased out in favor of time blocks)
 const DEFAULT_DOT_COLOR: DotColor = 1;
 
 function loadData(): CalendarData {
-  if (typeof window === "undefined") return {};
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored ? JSON.parse(stored) : {};
@@ -34,7 +36,6 @@ function loadData(): CalendarData {
 }
 
 function saveData(data: CalendarData) {
-  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
@@ -48,24 +49,70 @@ export function YearCalendar() {
   const [year, setYear] = useState(() => today.getFullYear());
   const [month, setMonth] = useState(() => today.getMonth());
   const [day, setDay] = useState(() => today.getDate());
-  const [data, setData] = useState<CalendarData>(() => loadData());
+  // Initialize with empty data to match server render, then load from localStorage after mount
+  const [data, setData] = useState<CalendarData>({});
+  const [mounted, setMounted] = useState(false);
+  
+  // Undo/Redo history
+  const [undoStack, setUndoStack] = useState<CalendarData[]>([]);
+  const [redoStack, setRedoStack] = useState<CalendarData[]>([]);
+
+  // Load data from localStorage after mount to avoid hydration mismatch
+  useEffect(() => {
+    setData(loadData());
+    setMounted(true);
+  }, []);
+  
+  // Helper to update data with undo tracking
+  const updateDataWithUndo = useCallback((newData: CalendarData) => {
+    setUndoStack((prev) => {
+      const newStack = [...prev, data];
+      // Limit history size
+      if (newStack.length > MAX_UNDO_HISTORY) {
+        return newStack.slice(-MAX_UNDO_HISTORY);
+      }
+      return newStack;
+    });
+    setRedoStack([]); // Clear redo stack on new change
+    setData(newData);
+    saveData(newData);
+  }, [data]);
+  
+  // Undo function
+  const undo = useCallback(() => {
+    if (undoStack.length === 0) return;
+    
+    const previousData = undoStack[undoStack.length - 1];
+    setRedoStack((prev) => [...prev, data]);
+    setUndoStack((prev) => prev.slice(0, -1));
+    setData(previousData);
+    saveData(previousData);
+  }, [undoStack, data]);
+  
+  // Redo function
+  const redo = useCallback(() => {
+    if (redoStack.length === 0) return;
+    
+    const nextData = redoStack[redoStack.length - 1];
+    setUndoStack((prev) => [...prev, data]);
+    setRedoStack((prev) => prev.slice(0, -1));
+    setData(nextData);
+    saveData(nextData);
+  }, [redoStack, data]);
 
   const handleDayUpdate = useCallback(
     (month: number, day: number, dayData: DayData) => {
-      setData((prev) => {
-        const monthKey = `${year}-${month}`;
-        const newData = {
-          ...prev,
-          [monthKey]: {
-            ...prev[monthKey],
-            [`${day}`]: dayData,
-          },
-        };
-        saveData(newData);
-        return newData;
-      });
+      const monthKey = `${year}-${month}`;
+      const newData = {
+        ...data,
+        [monthKey]: {
+          ...data[monthKey],
+          [`${day}`]: dayData,
+        },
+      };
+      updateDataWithUndo(newData);
     },
-    [year]
+    [year, data, updateDataWithUndo]
   );
 
   const months = Array.from({ length: 12 }, (_, i) => i);
@@ -150,20 +197,22 @@ export function YearCalendar() {
     return data[monthKey]?.[`${d}`] || { note: "", dots: [] };
   };
 
-  const handleUpdate = (y: number, m: number, d: number, dayData: DayData) => {
-    setData((prev) => {
-      const monthKey = `${y}-${m}`;
-      const newData = {
-        ...prev,
-        [monthKey]: {
-          ...prev[monthKey],
-          [`${d}`]: dayData,
-        },
-      };
-      saveData(newData);
-      return newData;
-    });
-  };
+  // Get all blocks for a date (including recurring blocks from other days)
+  const getBlocksForDateFn = useCallback((targetDate: Date): TimeBlock[] => {
+    return getBlocksForDate(targetDate, data);
+  }, [data]);
+
+  const handleUpdate = useCallback((y: number, m: number, d: number, dayData: DayData) => {
+    const monthKey = `${y}-${m}`;
+    const newData = {
+      ...data,
+      [monthKey]: {
+        ...data[monthKey],
+        [`${d}`]: dayData,
+      },
+    };
+    updateDataWithUndo(newData);
+  }, [data, updateDataWithUndo]);
 
   const handleDayClick = (date: Date) => {
     setYear(date.getFullYear());
@@ -215,23 +264,30 @@ export function YearCalendar() {
             if (!dots.includes(action.payload.dotColor)) {
               dots.push(action.payload.dotColor);
             }
-            setData((prev) => {
-              const monthKey = `${y}-${m}`;
-              const newData = {
-                ...prev,
-                [monthKey]: {
-                  ...prev[monthKey],
-                  [`${dayNum}`]: { ...existing, dots },
-                },
-              };
-              saveData(newData);
-              return newData;
-            });
+            handleUpdate(y, m, dayNum, { ...existing, dots });
           }
+          break;
+        case "undo":
+          undo();
+          break;
+        case "redo":
+          redo();
+          break;
+        case "toggle_theme":
+          // Toggle the theme by clicking the theme toggle button
+          document.querySelector<HTMLButtonElement>('[data-theme-toggle]')?.click();
+          break;
+        case "new_event":
+          // Navigate to today in day view for easy event creation
+          const eventDate = action.payload.date || new Date();
+          setYear(eventDate.getFullYear());
+          setMonth(eventDate.getMonth());
+          setDay(eventDate.getDate());
+          setViewMode("day");
           break;
       }
     },
-    [year, month, day, setData]
+    [getData, handleUpdate, undo, redo]
   );
 
   return (
@@ -273,7 +329,7 @@ export function YearCalendar() {
 
           <div className="flex items-center gap-3 flex-shrink-0">
             <p className="text-[8px] text-muted-foreground hidden lg:block">
-              Click to open day
+              Click to add · Double-click for day view
             </p>
             <ThemeToggle />
           </div>
@@ -283,7 +339,7 @@ export function YearCalendar() {
       {/* Main Content */}
       <main className="flex-1 min-h-0 overflow-hidden">
         {viewMode === "year" && (
-          <div className="h-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 border-l border-t border-border overflow-y-auto">
+          <div className="h-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 overflow-y-auto">
             {months.map((m) => {
               const monthKey = `${year}-${m}`;
               const monthData = data[monthKey] || {};
@@ -297,6 +353,7 @@ export function YearCalendar() {
                   onDayUpdate={(d, dayData) => handleDayUpdate(m, d, dayData)}
                   selectedDotColor={DEFAULT_DOT_COLOR}
                   onDayClick={(d) => handleDayClick(new Date(year, m, d))}
+                  getBlocksForDate={getBlocksForDateFn}
                 />
               );
             })}
@@ -311,6 +368,7 @@ export function YearCalendar() {
             onDayUpdate={handleDayUpdate}
             selectedDotColor={DEFAULT_DOT_COLOR}
             onDayClick={(d) => handleDayClick(new Date(year, month, d))}
+            getBlocksForDate={getBlocksForDateFn}
           />
         )}
 
@@ -321,6 +379,7 @@ export function YearCalendar() {
             onUpdate={handleUpdate}
             selectedDotColor={DEFAULT_DOT_COLOR}
             onDayClick={handleDayClick}
+            getBlocksForDate={getBlocksForDateFn}
           />
         )}
 
@@ -334,7 +393,11 @@ export function YearCalendar() {
       </main>
 
       {/* Floating Omni Bar */}
-      <OmniBar onAction={handleOmniAction} />
+      <OmniBar 
+        onAction={handleOmniAction} 
+        canUndo={undoStack.length > 0}
+        canRedo={redoStack.length > 0}
+      />
     </div>
   );
 }

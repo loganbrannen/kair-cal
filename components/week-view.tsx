@@ -8,6 +8,7 @@ import {
   type DayData,
   type DotColor,
   type DayColorCode,
+  type TimeBlock,
   WEEKDAYS,
   MONTH_NAMES_SHORT,
   BLOCK_CATEGORIES,
@@ -23,6 +24,7 @@ interface WeekViewProps {
   onUpdate: (year: number, month: number, day: number, data: DayData) => void;
   selectedDotColor: DotColor;
   onDayClick?: (date: Date) => void;
+  getBlocksForDate?: (date: Date) => TimeBlock[];
 }
 
 export function WeekView({
@@ -31,6 +33,7 @@ export function WeekView({
   onUpdate,
   selectedDotColor,
   onDayClick,
+  getBlocksForDate,
 }: WeekViewProps) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -42,16 +45,19 @@ export function WeekView({
   });
 
   return (
-    <div className="h-full flex border-l border-t border-border">
+    <div className="h-full flex">
       {days.map((date, i) => {
         const isToday = date.getTime() === today.getTime();
         const dayData = getData(date.getFullYear(), date.getMonth(), date.getDate());
+        // Get all blocks including recurring ones
+        const allBlocks = getBlocksForDate ? getBlocksForDate(date) : (dayData.timeBlocks || []);
 
         return (
           <WeekDayColumn
             key={i}
             date={date}
             data={dayData}
+            allBlocks={allBlocks}
             isToday={isToday}
             onUpdate={(data) => onUpdate(date.getFullYear(), date.getMonth(), date.getDate(), data)}
             selectedDotColor={selectedDotColor}
@@ -66,6 +72,7 @@ export function WeekView({
 interface WeekDayColumnProps {
   date: Date;
   data: DayData;
+  allBlocks: TimeBlock[]; // All blocks including recurring
   isToday: boolean;
   onUpdate: (data: DayData) => void;
   selectedDotColor: DotColor;
@@ -75,15 +82,15 @@ interface WeekDayColumnProps {
 function WeekDayColumn({
   date,
   data,
+  allBlocks,
   isToday,
   onDayClick,
   onUpdate,
 }: WeekDayColumnProps) {
   const [colorPickerPos, setColorPickerPos] = useState<{ x: number; y: number } | null>(null);
   
-  const timeBlocks = data.timeBlocks || [];
-  // Sort by start time
-  const sortedBlocks = [...timeBlocks].sort((a, b) => a.startTime.localeCompare(b.startTime));
+  // Use allBlocks which includes recurring blocks (already sorted)
+  const sortedBlocks = allBlocks;
   
   // Get day color info
   const dayColorInfo = data.dayColor ? DAY_COLORS[data.dayColor] : null;
@@ -98,9 +105,17 @@ function WeekDayColumn({
     setColorPickerPos(null);
   };
 
+  // Double-click navigates to day view
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDayClick?.(date);
+  };
+
   // Day header content (for adding new blocks)
   const dayHeader = (
     <div
+      onDoubleClick={handleDoubleClick}
       className={cn(
         "flex flex-col items-center py-2 border-b border-border cursor-pointer flex-shrink-0",
         "hover:bg-accent/30 transition-colors",
@@ -119,15 +134,6 @@ function WeekDayColumn({
       <span className="text-[9px] text-muted-foreground">
         {MONTH_NAMES_SHORT[date.getMonth()]}
       </span>
-    </div>
-  );
-
-  // Empty state content (for adding new blocks)
-  const emptyState = (
-    <div 
-      className="flex-1 flex items-center justify-center cursor-pointer hover:bg-accent/20 transition-colors rounded"
-    >
-      <span className="text-[10px] text-muted-foreground/50">+ Add</span>
     </div>
   );
 
@@ -152,52 +158,60 @@ function WeekDayColumn({
 
         {/* Time blocks as cards */}
         <div className="flex-1 p-1.5 overflow-y-auto flex flex-col gap-1">
-          {sortedBlocks.length > 0 ? (
-            sortedBlocks.map((block) => {
-              const cat = BLOCK_CATEGORIES[block.category];
-              // Block card content
-              const blockCard = (
-                <div
-                  className={cn(
-                    "px-2 py-1.5 rounded border-l-2 cursor-pointer",
-                    "hover:opacity-80 transition-opacity",
-                    cat?.bgClass || "bg-muted/50",
-                    cat?.borderClass || "border-muted-foreground/50"
-                  )}
-                >
-                  <div className="text-[10px] font-medium truncate">
-                    {block.title || cat?.label || "Event"}
-                  </div>
-                  <div className="text-[9px] text-muted-foreground">
-                    {formatTimeRange(block.startTime, block.endTime)}
-                  </div>
+          {/* Existing blocks */}
+          {sortedBlocks.map((block) => {
+            const cat = BLOCK_CATEGORIES[block.category];
+            // Block card content
+            const blockCard = (
+              <div
+                className={cn(
+                  "px-2 py-1.5 rounded border-l-2 cursor-pointer",
+                  "hover:opacity-80 transition-opacity",
+                  cat?.bgClass || "bg-muted/50",
+                  cat?.borderClass || "border-muted-foreground/50"
+                )}
+              >
+                <div className="text-[10px] font-medium truncate">
+                  {block.title || cat?.label || "Event"}
                 </div>
-              );
+                <div className="text-[9px] text-muted-foreground">
+                  {formatTimeRange(block.startTime, block.endTime)}
+                </div>
+              </div>
+            );
 
-              // Wrap each block in popover for editing
-              return (
-                <QuickAddPopover
-                  key={block.id}
-                  date={date}
-                  data={data}
-                  onUpdate={onUpdate}
-                  onViewFullDay={() => onDayClick?.(date)}
-                  editBlockId={block.id}
-                >
-                  {blockCard}
-                </QuickAddPopover>
-              );
-            })
-          ) : (
-            <QuickAddPopover
-              date={date}
-              data={data}
-              onUpdate={onUpdate}
-              onViewFullDay={() => onDayClick?.(date)}
+            // Wrap each block in popover for editing
+            return (
+              <QuickAddPopover
+                key={block.id}
+                date={date}
+                data={data}
+                onUpdate={onUpdate}
+                onViewFullDay={() => onDayClick?.(date)}
+                editBlockId={block.id}
+              >
+                {blockCard}
+              </QuickAddPopover>
+            );
+          })}
+          
+          {/* Always show Add button - fills remaining space when blocks exist, full space when empty */}
+          <QuickAddPopover
+            date={date}
+            data={data}
+            onUpdate={onUpdate}
+            onViewFullDay={() => onDayClick?.(date)}
+          >
+            <div 
+              onDoubleClick={handleDoubleClick}
+              className={cn(
+                "flex items-center justify-center cursor-pointer hover:bg-accent/20 transition-colors rounded",
+                sortedBlocks.length > 0 ? "py-2" : "flex-1"
+              )}
             >
-              {emptyState}
-            </QuickAddPopover>
-          )}
+              <span className="text-[10px] text-muted-foreground/50">+ Add</span>
+            </div>
+          </QuickAddPopover>
         </div>
       </div>
       

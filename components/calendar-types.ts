@@ -64,12 +64,29 @@ export const DAY_COLORS: Record<Exclude<DayColorCode, null>, {
 // Consolidated: time block categories now use the 7-color system
 export type TimeBlockCategory = "focus" | "joy" | "health" | "rest" | "social" | "create" | "review";
 
+// Recurrence configuration
+export type RecurrenceFrequency = "daily" | "weekly" | "monthly" | "yearly";
+
+export interface RecurrenceRule {
+  frequency: RecurrenceFrequency;
+  interval: number; // e.g., every 2 weeks
+  daysOfWeek?: number[]; // 0-6 for weekly recurrence (Sun=0, Mon=1, etc.)
+  endDate?: string; // YYYY-MM-DD when recurrence ends (optional)
+  count?: number; // OR number of occurrences (optional)
+}
+
 export interface TimeBlock {
   id: string;
   startTime: string; // HH:MM format
   endTime: string;   // HH:MM format
   title: string;
   category: TimeBlockCategory;
+  // Multi-day support
+  startDate?: string; // YYYY-MM-DD - the date this block starts
+  endDate?: string;   // YYYY-MM-DD - for multi-day events (spans until this date)
+  isAllDay?: boolean; // true for all-day events
+  // Recurrence support
+  recurrence?: RecurrenceRule;
 }
 
 export interface ChecklistItem {
@@ -259,4 +276,141 @@ export function getWeekDates(year: number, month: number, day: number): Date[] {
     d.setDate(startOfWeek.getDate() + i);
     return d;
   });
+}
+
+// Recurrence frequency options
+export const RECURRENCE_OPTIONS: { value: RecurrenceFrequency; label: string }[] = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "yearly", label: "Yearly" },
+];
+
+// Format date as YYYY-MM-DD
+export function formatDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Parse YYYY-MM-DD to Date
+export function parseDateString(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+// Check if a recurring event occurs on a specific date
+export function doesRecurOnDate(
+  block: TimeBlock,
+  targetDate: Date,
+  originalDate: Date
+): boolean {
+  if (!block.recurrence) return false;
+  
+  const { frequency, interval, daysOfWeek, endDate, count } = block.recurrence;
+  
+  // Check if target is before original date
+  if (targetDate < originalDate) return false;
+  
+  // Check end date
+  if (endDate && targetDate > parseDateString(endDate)) return false;
+  
+  const diffTime = targetDate.getTime() - originalDate.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  switch (frequency) {
+    case "daily":
+      return diffDays % interval === 0;
+      
+    case "weekly":
+      // Check if it's been the right number of weeks
+      const diffWeeks = Math.floor(diffDays / 7);
+      if (diffWeeks % interval !== 0 && diffDays >= 7) return false;
+      
+      // Check if this day of week is selected
+      if (daysOfWeek && daysOfWeek.length > 0) {
+        return daysOfWeek.includes(targetDate.getDay());
+      }
+      // Default: same day of week as original
+      return targetDate.getDay() === originalDate.getDay();
+      
+    case "monthly":
+      // Same day of month, every N months
+      const monthsDiff = (targetDate.getFullYear() - originalDate.getFullYear()) * 12 
+        + (targetDate.getMonth() - originalDate.getMonth());
+      return monthsDiff % interval === 0 && targetDate.getDate() === originalDate.getDate();
+      
+    case "yearly":
+      // Same month and day, every N years
+      const yearsDiff = targetDate.getFullYear() - originalDate.getFullYear();
+      return yearsDiff % interval === 0 
+        && targetDate.getMonth() === originalDate.getMonth()
+        && targetDate.getDate() === originalDate.getDate();
+      
+    default:
+      return false;
+  }
+}
+
+// Check if a multi-day event spans a specific date
+export function isDateInRange(
+  targetDate: Date,
+  startDate: Date,
+  endDate: Date
+): boolean {
+  const target = targetDate.getTime();
+  const start = startDate.getTime();
+  const end = endDate.getTime();
+  return target >= start && target <= end;
+}
+
+// Get all time blocks that should appear on a specific date
+// This includes blocks from that day + recurring blocks from other days
+export function getBlocksForDate(
+  targetDate: Date,
+  allData: CalendarData
+): TimeBlock[] {
+  const targetDateStr = formatDateString(targetDate);
+  const targetY = targetDate.getFullYear();
+  const targetM = targetDate.getMonth();
+  const targetD = targetDate.getDate();
+  
+  // Get blocks directly on this day
+  const monthKey = `${targetY}-${targetM}`;
+  const dayData = allData[monthKey]?.[`${targetD}`];
+  const directBlocks = dayData?.timeBlocks || [];
+  
+  // Collect recurring blocks from ALL dates in the data
+  const recurringBlocks: TimeBlock[] = [];
+  
+  for (const [mk, monthData] of Object.entries(allData)) {
+    for (const [dk, dd] of Object.entries(monthData)) {
+      const blocks = dd.timeBlocks || [];
+      for (const block of blocks) {
+        // Skip if this block is already a direct block on this day
+        if (mk === monthKey && dk === `${targetD}`) continue;
+        
+        // Check if this block has recurrence
+        if (!block.recurrence || !block.startDate) continue;
+        
+        const originalDate = parseDateString(block.startDate);
+        
+        // Check if this recurring block occurs on the target date
+        if (doesRecurOnDate(block, targetDate, originalDate)) {
+          // Create a copy with a unique ID for this occurrence
+          recurringBlocks.push({
+            ...block,
+            id: `${block.id}-${targetDateStr}`, // Unique ID for this occurrence
+            startDate: targetDateStr, // Update date for this occurrence
+          });
+        }
+      }
+    }
+  }
+  
+  // Combine and sort by start time
+  return [...directBlocks, ...recurringBlocks].sort((a, b) => 
+    a.startTime.localeCompare(b.startTime)
+  );
 }

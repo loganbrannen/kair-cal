@@ -40,6 +40,8 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggleTheme}
+      data-theme-toggle
+      aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
       className={cn(
         "relative w-8 h-4 rounded-full transition-colors duration-200",
         "border border-border",

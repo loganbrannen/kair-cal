@@ -35,20 +35,28 @@ __turbopack_context__.s([
     ()=>MONTH_NAMES,
     "MONTH_NAMES_SHORT",
     ()=>MONTH_NAMES_SHORT,
+    "RECURRENCE_OPTIONS",
+    ()=>RECURRENCE_OPTIONS,
     "WEEKDAYS",
     ()=>WEEKDAYS,
     "WEEKDAYS_SHORT",
     ()=>WEEKDAYS_SHORT,
     "addMinutesToTime",
     ()=>addMinutesToTime,
+    "doesRecurOnDate",
+    ()=>doesRecurOnDate,
     "formatDateKey",
     ()=>formatDateKey,
+    "formatDateString",
+    ()=>formatDateString,
     "formatTime",
     ()=>formatTime,
     "formatTimeRange",
     ()=>formatTimeRange,
     "generateId",
     ()=>generateId,
+    "getBlocksForDate",
+    ()=>getBlocksForDate,
     "getDaysInMonth",
     ()=>getDaysInMonth,
     "getFirstDayOfMonth",
@@ -57,8 +65,12 @@ __turbopack_context__.s([
     ()=>getWeekDates,
     "getWeekStart",
     ()=>getWeekStart,
+    "isDateInRange",
+    ()=>isDateInRange,
     "isToday",
-    ()=>isToday
+    ()=>isToday,
+    "parseDateString",
+    ()=>parseDateString
 ]);
 const DAY_COLORS = {
     1: {
@@ -324,6 +336,112 @@ function getWeekDates(year, month, day) {
         d.setDate(startOfWeek.getDate() + i);
         return d;
     });
+}
+const RECURRENCE_OPTIONS = [
+    {
+        value: "daily",
+        label: "Daily"
+    },
+    {
+        value: "weekly",
+        label: "Weekly"
+    },
+    {
+        value: "monthly",
+        label: "Monthly"
+    },
+    {
+        value: "yearly",
+        label: "Yearly"
+    }
+];
+function formatDateString(date) {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+function parseDateString(dateStr) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+}
+function doesRecurOnDate(block, targetDate, originalDate) {
+    if (!block.recurrence) return false;
+    const { frequency, interval, daysOfWeek, endDate, count } = block.recurrence;
+    // Check if target is before original date
+    if (targetDate < originalDate) return false;
+    // Check end date
+    if (endDate && targetDate > parseDateString(endDate)) return false;
+    const diffTime = targetDate.getTime() - originalDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    switch(frequency){
+        case "daily":
+            return diffDays % interval === 0;
+        case "weekly":
+            // Check if it's been the right number of weeks
+            const diffWeeks = Math.floor(diffDays / 7);
+            if (diffWeeks % interval !== 0 && diffDays >= 7) return false;
+            // Check if this day of week is selected
+            if (daysOfWeek && daysOfWeek.length > 0) {
+                return daysOfWeek.includes(targetDate.getDay());
+            }
+            // Default: same day of week as original
+            return targetDate.getDay() === originalDate.getDay();
+        case "monthly":
+            // Same day of month, every N months
+            const monthsDiff = (targetDate.getFullYear() - originalDate.getFullYear()) * 12 + (targetDate.getMonth() - originalDate.getMonth());
+            return monthsDiff % interval === 0 && targetDate.getDate() === originalDate.getDate();
+        case "yearly":
+            // Same month and day, every N years
+            const yearsDiff = targetDate.getFullYear() - originalDate.getFullYear();
+            return yearsDiff % interval === 0 && targetDate.getMonth() === originalDate.getMonth() && targetDate.getDate() === originalDate.getDate();
+        default:
+            return false;
+    }
+}
+function isDateInRange(targetDate, startDate, endDate) {
+    const target = targetDate.getTime();
+    const start = startDate.getTime();
+    const end = endDate.getTime();
+    return target >= start && target <= end;
+}
+function getBlocksForDate(targetDate, allData) {
+    const targetDateStr = formatDateString(targetDate);
+    const targetY = targetDate.getFullYear();
+    const targetM = targetDate.getMonth();
+    const targetD = targetDate.getDate();
+    // Get blocks directly on this day
+    const monthKey = `${targetY}-${targetM}`;
+    const dayData = allData[monthKey]?.[`${targetD}`];
+    const directBlocks = dayData?.timeBlocks || [];
+    // Collect recurring blocks from ALL dates in the data
+    const recurringBlocks = [];
+    for (const [mk, monthData] of Object.entries(allData)){
+        for (const [dk, dd] of Object.entries(monthData)){
+            const blocks = dd.timeBlocks || [];
+            for (const block of blocks){
+                // Skip if this block is already a direct block on this day
+                if (mk === monthKey && dk === `${targetD}`) continue;
+                // Check if this block has recurrence
+                if (!block.recurrence || !block.startDate) continue;
+                const originalDate = parseDateString(block.startDate);
+                // Check if this recurring block occurs on the target date
+                if (doesRecurOnDate(block, targetDate, originalDate)) {
+                    // Create a copy with a unique ID for this occurrence
+                    recurringBlocks.push({
+                        ...block,
+                        id: `${block.id}-${targetDateStr}`,
+                        startDate: targetDateStr
+                    });
+                }
+            }
+        }
+    }
+    // Combine and sort by start time
+    return [
+        ...directBlocks,
+        ...recurringBlocks
+    ].sort((a, b)=>a.startTime.localeCompare(b.startTime));
 }
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
@@ -835,9 +953,66 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
+// Format time to 12-hour (9:00am)
+function formatTime12h(time24) {
+    const [h, m] = time24.split(":").map(Number);
+    const period = h >= 12 ? "pm" : "am";
+    const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${hour12}:${m.toString().padStart(2, "0")}${period}`;
+}
+// Parse 12-hour time back to 24-hour
+function parseTime12h(time12) {
+    const match = time12.match(/(\d+):(\d+)(am|pm)/i);
+    if (!match) return "09:00";
+    let [, h, m, period] = match;
+    let hour = parseInt(h);
+    if (period.toLowerCase() === "pm" && hour !== 12) hour += 12;
+    if (period.toLowerCase() === "am" && hour === 12) hour = 0;
+    return `${hour.toString().padStart(2, "0")}:${m}`;
+}
 const CATEGORY_KEYS = Object.keys(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["BLOCK_CATEGORIES"]);
 _c = CATEGORY_KEYS;
 const MOBILE_BREAKPOINT = 768;
+// Quick duration options (in minutes)
+const QUICK_DURATIONS = [
+    15,
+    30,
+    45,
+    60,
+    90,
+    120
+];
+// Recurrence options for dropdown (Google Cal style)
+const REPEAT_OPTIONS = [
+    {
+        value: "none",
+        label: "Does not repeat"
+    },
+    {
+        value: "daily",
+        label: "Daily"
+    },
+    {
+        value: "weekly",
+        label: "Weekly"
+    },
+    {
+        value: "monthly",
+        label: "Monthly"
+    },
+    {
+        value: "yearly",
+        label: "Yearly"
+    },
+    {
+        value: "weekdays",
+        label: "Every weekday (Mon–Fri)"
+    },
+    {
+        value: "custom",
+        label: "Custom..."
+    }
+];
 // Get next available start time based on existing blocks
 function getNextAvailableTime(blocks) {
     if (blocks.length === 0) return "09:00";
@@ -849,6 +1024,13 @@ function getNextAvailableTime(blocks) {
     if (lastEnd >= "23:00") return "09:00";
     return lastEnd;
 }
+// Format duration for display
+function formatDuration(minutes) {
+    if (minutes < 60) return `${minutes}m`;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
 function QuickAddPopover({ children, date, data, onUpdate, onViewFullDay, editBlockId }) {
     _s();
     // Use state to track mobile after mount to avoid hydration mismatch
@@ -856,6 +1038,13 @@ function QuickAddPopover({ children, date, data, onUpdate, onViewFullDay, editBl
     const [mounted, setMounted] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [open, setOpen] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [selectedDuration, setSelectedDuration] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(60);
+    const [repeatValue, setRepeatValue] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("none");
+    const [showCustomRepeat, setShowCustomRepeat] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [recurrence, setRecurrence] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({
+        frequency: "weekly",
+        interval: 1,
+        daysOfWeek: []
+    });
     const inputRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
     // Detect mobile after mount
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
@@ -889,39 +1078,60 @@ function QuickAddPopover({ children, date, data, onUpdate, onViewFullDay, editBl
             };
         }
     }["QuickAddPopover.useState"]);
-    // Reset form when opening
+    // Reset form when opening - only depend on `open` to avoid infinite loops
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "QuickAddPopover.useEffect": ()=>{
             if (open) {
-                if (editingBlock) {
+                const blocks = data.timeBlocks || [];
+                const blockToEdit = editBlockId ? blocks.find({
+                    "QuickAddPopover.useEffect": (b)=>b.id === editBlockId
+                }["QuickAddPopover.useEffect"]) : null;
+                if (blockToEdit) {
                     setNewBlock({
-                        ...editingBlock
+                        ...blockToEdit
                     });
                     // Calculate duration from existing block
-                    const [startH, startM] = editingBlock.startTime.split(":").map(Number);
-                    const [endH, endM] = editingBlock.endTime.split(":").map(Number);
+                    const [startH, startM] = blockToEdit.startTime.split(":").map(Number);
+                    const [endH, endM] = blockToEdit.endTime.split(":").map(Number);
                     const dur = endH * 60 + endM - (startH * 60 + startM);
                     setSelectedDuration(dur > 0 ? dur : 60);
+                    // Set recurrence state from block
+                    if (blockToEdit.recurrence) {
+                        setRepeatValue("custom");
+                        setShowCustomRepeat(true);
+                        setRecurrence(blockToEdit.recurrence);
+                    } else {
+                        setRepeatValue("none");
+                        setShowCustomRepeat(false);
+                    }
                 } else {
-                    const start = getNextAvailableTime(timeBlocks);
+                    const start = getNextAvailableTime(blocks);
+                    const dateStr = (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatDateString"])(date);
                     setNewBlock({
                         startTime: start,
                         endTime: (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["addMinutesToTime"])(start, 60),
                         title: "",
-                        category: "focus"
+                        category: "focus",
+                        startDate: dateStr
                     });
                     setSelectedDuration(60);
+                    setRepeatValue("none");
+                    setShowCustomRepeat(false);
+                    setRecurrence({
+                        frequency: "weekly",
+                        interval: 1,
+                        daysOfWeek: []
+                    });
                 }
                 // Focus input after a short delay
                 setTimeout({
                     "QuickAddPopover.useEffect": ()=>inputRef.current?.focus()
                 }["QuickAddPopover.useEffect"], 100);
             }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         }
     }["QuickAddPopover.useEffect"], [
-        open,
-        editingBlock,
-        timeBlocks
+        open
     ]);
     const handleDurationChange = (minutes)=>{
         setSelectedDuration(minutes);
@@ -937,14 +1147,75 @@ function QuickAddPopover({ children, date, data, onUpdate, onViewFullDay, editBl
                 endTime: (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["addMinutesToTime"])(startTime, selectedDuration)
             }));
     };
+    // Handle repeat dropdown change
+    const handleRepeatChange = (value)=>{
+        setRepeatValue(value);
+        if (value === "custom") {
+            setShowCustomRepeat(true);
+        } else if (value === "none") {
+            setShowCustomRepeat(false);
+        } else if (value === "weekdays") {
+            // Auto-configure for weekdays
+            setRecurrence({
+                frequency: "weekly",
+                interval: 1,
+                daysOfWeek: [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                ]
+            });
+            setShowCustomRepeat(false);
+        } else {
+            // daily, weekly, monthly, yearly
+            setRecurrence({
+                frequency: value,
+                interval: 1,
+                daysOfWeek: []
+            });
+            setShowCustomRepeat(false);
+        }
+    };
     const handleAddBlock = ()=>{
         if (!newBlock.title?.trim()) return;
+        const dateStr = (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatDateString"])(date);
+        // Build recurrence based on repeat selection
+        let blockRecurrence;
+        if (repeatValue !== "none") {
+            if (repeatValue === "weekdays") {
+                blockRecurrence = {
+                    frequency: "weekly",
+                    interval: 1,
+                    daysOfWeek: [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ]
+                };
+            } else if (repeatValue === "custom") {
+                blockRecurrence = recurrence;
+            } else {
+                blockRecurrence = {
+                    frequency: repeatValue,
+                    interval: 1
+                };
+            }
+        }
         const block = {
             id: editingBlock?.id || (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["generateId"])(),
             startTime: newBlock.startTime || "09:00",
             endTime: newBlock.endTime || "10:00",
             title: newBlock.title.trim(),
-            category: newBlock.category || "focus"
+            category: newBlock.category || "focus",
+            startDate: dateStr,
+            // Recurrence: include if not "none"
+            ...blockRecurrence ? {
+                recurrence: blockRecurrence
+            } : {}
         };
         let updatedBlocks;
         if (editingBlock) {
@@ -975,6 +1246,18 @@ function QuickAddPopover({ children, date, data, onUpdate, onViewFullDay, editBl
             handleAddBlock();
         }
     };
+    // Short day name
+    const dayName = [
+        "Sun",
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat"
+    ][date.getDay()];
+    const monthName = __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MONTH_NAMES"][date.getMonth()];
+    const dateDisplay = `${dayName}, ${monthName} ${date.getDate()}`;
     const formContent = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "flex flex-col gap-3",
         children: [
@@ -987,263 +1270,309 @@ function QuickAddPopover({ children, date, data, onUpdate, onViewFullDay, editBl
                         title: e.target.value
                     }),
                 onKeyDown: handleKeyDown,
-                placeholder: "What are you doing?",
-                className: "w-full text-sm bg-transparent border-b border-border px-1 py-2 placeholder:text-muted-foreground/50 outline-none focus:border-foreground transition-colors",
+                placeholder: "Add title",
+                className: "w-full text-base bg-transparent border-b border-border/50 px-0 py-2 placeholder:text-muted-foreground/40 outline-none focus:border-foreground transition-colors",
                 autoFocus: true
             }, void 0, false, {
                 fileName: "[project]/components/quick-add-popover.tsx",
-                lineNumber: 183,
+                lineNumber: 291,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "flex flex-col gap-1.5",
+                className: "flex items-center gap-2 text-sm",
                 children: [
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                        className: "text-[10px] uppercase tracking-wider text-muted-foreground",
-                        children: "Duration"
+                        className: "text-muted-foreground",
+                        children: dateDisplay
                     }, void 0, false, {
                         fileName: "[project]/components/quick-add-popover.tsx",
-                        lineNumber: 196,
+                        lineNumber: 304,
                         columnNumber: 9
                     }, this),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "flex gap-1.5 flex-wrap",
-                        children: __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DURATION_PRESETS"].map((preset)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                type: "button",
-                                onClick: ()=>handleDurationChange(preset.minutes),
-                                className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("text-xs px-3 py-1.5 border rounded-md transition-colors", selectedDuration === preset.minutes ? "bg-foreground text-background border-foreground" : "bg-transparent text-muted-foreground border-border hover:border-foreground/50 hover:text-foreground"),
-                                children: preset.label
-                            }, preset.minutes, false, {
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                        className: "text-muted-foreground/50",
+                        children: "·"
+                    }, void 0, false, {
+                        fileName: "[project]/components/quick-add-popover.tsx",
+                        lineNumber: 305,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                        type: "time",
+                        value: newBlock.startTime || "09:00",
+                        onChange: (e)=>handleStartTimeChange(e.target.value),
+                        className: "bg-muted/50 px-2 py-1 rounded text-sm outline-none focus:ring-1 focus:ring-foreground/20 w-[90px]"
+                    }, void 0, false, {
+                        fileName: "[project]/components/quick-add-popover.tsx",
+                        lineNumber: 306,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                        className: "text-muted-foreground",
+                        children: "–"
+                    }, void 0, false, {
+                        fileName: "[project]/components/quick-add-popover.tsx",
+                        lineNumber: 312,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                        className: "text-muted-foreground tabular-nums",
+                        children: formatTime12h(newBlock.endTime || "10:00")
+                    }, void 0, false, {
+                        fileName: "[project]/components/quick-add-popover.tsx",
+                        lineNumber: 313,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/components/quick-add-popover.tsx",
+                lineNumber: 303,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex gap-1",
+                children: QUICK_DURATIONS.map((mins)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                        type: "button",
+                        onClick: ()=>handleDurationChange(mins),
+                        className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("text-xs px-2 py-1 rounded transition-all", selectedDuration === mins ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground hover:bg-muted"),
+                        children: formatDuration(mins)
+                    }, mins, false, {
+                        fileName: "[project]/components/quick-add-popover.tsx",
+                        lineNumber: 321,
+                        columnNumber: 11
+                    }, this))
+            }, void 0, false, {
+                fileName: "[project]/components/quick-add-popover.tsx",
+                lineNumber: 319,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex items-center gap-1",
+                children: [
+                    CATEGORY_KEYS.map((catKey)=>{
+                        const c = __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["BLOCK_CATEGORIES"][catKey];
+                        const isSelected = newBlock.category === catKey;
+                        // Get the color class and extract for the dot
+                        const colorClass = c.borderClass.replace("border-", "bg-");
+                        return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            type: "button",
+                            onClick: ()=>setNewBlock({
+                                    ...newBlock,
+                                    category: catKey
+                                }),
+                            className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("group relative w-6 h-6 rounded-full flex items-center justify-center transition-all", isSelected ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "hover:scale-110"),
+                            title: c.label,
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("w-4 h-4 rounded-full", colorClass)
+                            }, void 0, false, {
                                 fileName: "[project]/components/quick-add-popover.tsx",
-                                lineNumber: 201,
+                                lineNumber: 355,
+                                columnNumber: 15
+                            }, this)
+                        }, catKey, false, {
+                            fileName: "[project]/components/quick-add-popover.tsx",
+                            lineNumber: 345,
+                            columnNumber: 13
+                        }, this);
+                    }),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                        className: "text-xs text-muted-foreground ml-2",
+                        children: __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["BLOCK_CATEGORIES"][newBlock.category || "focus"].label
+                    }, void 0, false, {
+                        fileName: "[project]/components/quick-add-popover.tsx",
+                        lineNumber: 359,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/components/quick-add-popover.tsx",
+                lineNumber: 338,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
+                value: repeatValue,
+                onChange: (e)=>handleRepeatChange(e.target.value),
+                className: "text-sm bg-muted/50 px-3 py-2 rounded outline-none focus:ring-1 focus:ring-foreground/20 cursor-pointer w-full",
+                children: REPEAT_OPTIONS.map((opt)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                        value: opt.value,
+                        children: opt.label
+                    }, opt.value, false, {
+                        fileName: "[project]/components/quick-add-popover.tsx",
+                        lineNumber: 371,
+                        columnNumber: 11
+                    }, this))
+            }, void 0, false, {
+                fileName: "[project]/components/quick-add-popover.tsx",
+                lineNumber: 365,
+                columnNumber: 7
+            }, this),
+            showCustomRepeat && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex flex-col gap-2 p-3 bg-muted/30 rounded-md",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "flex items-center gap-2 text-sm",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                className: "text-muted-foreground",
+                                children: "Every"
+                            }, void 0, false, {
+                                fileName: "[project]/components/quick-add-popover.tsx",
+                                lineNumber: 381,
                                 columnNumber: 13
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                type: "number",
+                                min: 1,
+                                max: 99,
+                                value: recurrence.interval,
+                                onChange: (e)=>setRecurrence({
+                                        ...recurrence,
+                                        interval: Math.max(1, parseInt(e.target.value) || 1)
+                                    }),
+                                className: "w-12 bg-background px-2 py-1 rounded text-center outline-none focus:ring-1 focus:ring-foreground/20"
+                            }, void 0, false, {
+                                fileName: "[project]/components/quick-add-popover.tsx",
+                                lineNumber: 382,
+                                columnNumber: 13
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
+                                value: recurrence.frequency,
+                                onChange: (e)=>setRecurrence({
+                                        ...recurrence,
+                                        frequency: e.target.value
+                                    }),
+                                className: "bg-background px-2 py-1 rounded outline-none focus:ring-1 focus:ring-foreground/20",
+                                children: __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["RECURRENCE_OPTIONS"].map((opt)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                        value: opt.value,
+                                        children: recurrence.interval === 1 ? opt.label.replace(/ly$/, "").toLowerCase() : opt.label.replace(/ly$/, "s").toLowerCase()
+                                    }, opt.value, false, {
+                                        fileName: "[project]/components/quick-add-popover.tsx",
+                                        lineNumber: 396,
+                                        columnNumber: 17
+                                    }, this))
+                            }, void 0, false, {
+                                fileName: "[project]/components/quick-add-popover.tsx",
+                                lineNumber: 390,
+                                columnNumber: 13
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/components/quick-add-popover.tsx",
+                        lineNumber: 380,
+                        columnNumber: 11
+                    }, this),
+                    recurrence.frequency === "weekly" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "flex gap-1",
+                        children: __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["WEEKDAYS"].map((day, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                type: "button",
+                                onClick: ()=>{
+                                    const days = recurrence.daysOfWeek || [];
+                                    const newDays = days.includes(i) ? days.filter((d)=>d !== i) : [
+                                        ...days,
+                                        i
+                                    ].sort();
+                                    setRecurrence({
+                                        ...recurrence,
+                                        daysOfWeek: newDays
+                                    });
+                                },
+                                className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("w-7 h-7 text-xs rounded-full transition-colors", (recurrence.daysOfWeek || []).includes(i) ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"),
+                                children: day.charAt(0)
+                            }, i, false, {
+                                fileName: "[project]/components/quick-add-popover.tsx",
+                                lineNumber: 409,
+                                columnNumber: 17
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/components/quick-add-popover.tsx",
-                        lineNumber: 199,
-                        columnNumber: 9
-                    }, this)
-                ]
-            }, void 0, true, {
-                fileName: "[project]/components/quick-add-popover.tsx",
-                lineNumber: 195,
-                columnNumber: 7
-            }, this),
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "flex items-center gap-3",
-                children: [
+                        lineNumber: 407,
+                        columnNumber: 13
+                    }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "flex flex-col gap-1",
+                        className: "flex items-center gap-2 text-sm",
                         children: [
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                className: "text-[10px] uppercase tracking-wider text-muted-foreground",
-                                children: "Start"
+                                className: "text-muted-foreground",
+                                children: "Ends"
                             }, void 0, false, {
                                 fileName: "[project]/components/quick-add-popover.tsx",
-                                lineNumber: 221,
-                                columnNumber: 11
+                                lineNumber: 434,
+                                columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                type: "time",
-                                value: newBlock.startTime || "09:00",
-                                onChange: (e)=>handleStartTimeChange(e.target.value),
-                                className: "text-sm bg-transparent border border-border px-2 py-1.5 rounded-md outline-none focus:border-foreground transition-colors"
-                            }, void 0, false, {
-                                fileName: "[project]/components/quick-add-popover.tsx",
-                                lineNumber: 224,
-                                columnNumber: 11
-                            }, this)
-                        ]
-                    }, void 0, true, {
-                        fileName: "[project]/components/quick-add-popover.tsx",
-                        lineNumber: 220,
-                        columnNumber: 9
-                    }, this),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                        className: "text-muted-foreground mt-5",
-                        children: "→"
-                    }, void 0, false, {
-                        fileName: "[project]/components/quick-add-popover.tsx",
-                        lineNumber: 231,
-                        columnNumber: 9
-                    }, this),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "flex flex-col gap-1",
-                        children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                className: "text-[10px] uppercase tracking-wider text-muted-foreground",
-                                children: "End"
-                            }, void 0, false, {
-                                fileName: "[project]/components/quick-add-popover.tsx",
-                                lineNumber: 233,
-                                columnNumber: 11
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                className: "text-sm px-2 py-1.5 text-muted-foreground",
-                                children: newBlock.endTime || "10:00"
-                            }, void 0, false, {
-                                fileName: "[project]/components/quick-add-popover.tsx",
-                                lineNumber: 236,
-                                columnNumber: 11
-                            }, this)
-                        ]
-                    }, void 0, true, {
-                        fileName: "[project]/components/quick-add-popover.tsx",
-                        lineNumber: 232,
-                        columnNumber: 9
-                    }, this)
-                ]
-            }, void 0, true, {
-                fileName: "[project]/components/quick-add-popover.tsx",
-                lineNumber: 219,
-                columnNumber: 7
-            }, this),
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "flex flex-col gap-1.5",
-                children: [
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                        className: "text-[10px] uppercase tracking-wider text-muted-foreground",
-                        children: "Category"
-                    }, void 0, false, {
-                        fileName: "[project]/components/quick-add-popover.tsx",
-                        lineNumber: 244,
-                        columnNumber: 9
-                    }, this),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "flex gap-1.5 flex-wrap",
-                        children: CATEGORY_KEYS.map((catKey)=>{
-                            const c = __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["BLOCK_CATEGORIES"][catKey];
-                            return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                type: "button",
-                                onClick: ()=>setNewBlock({
-                                        ...newBlock,
-                                        category: catKey
+                                type: "date",
+                                value: recurrence.endDate || "",
+                                onChange: (e)=>setRecurrence({
+                                        ...recurrence,
+                                        endDate: e.target.value || undefined
                                     }),
-                                className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("text-[10px] uppercase tracking-wider px-2 py-1 border rounded-md transition-colors", newBlock.category === catKey ? (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])(c.bgClass, c.borderClass, "font-medium") : "bg-transparent text-muted-foreground border-border hover:border-foreground/30"),
-                                children: c.label
-                            }, catKey, false, {
+                                className: "bg-background px-2 py-1 rounded outline-none focus:ring-1 focus:ring-foreground/20"
+                            }, void 0, false, {
                                 fileName: "[project]/components/quick-add-popover.tsx",
-                                lineNumber: 251,
-                                columnNumber: 15
-                            }, this);
-                        })
-                    }, void 0, false, {
+                                lineNumber: 435,
+                                columnNumber: 13
+                            }, this)
+                        ]
+                    }, void 0, true, {
                         fileName: "[project]/components/quick-add-popover.tsx",
-                        lineNumber: 247,
-                        columnNumber: 9
+                        lineNumber: 433,
+                        columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/quick-add-popover.tsx",
-                lineNumber: 243,
-                columnNumber: 7
+                lineNumber: 379,
+                columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "flex items-center gap-2 pt-2 border-t border-border mt-1",
+                className: "flex items-center justify-end gap-2 pt-1",
                 children: [
+                    editingBlock && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                        type: "button",
+                        onClick: handleDeleteBlock,
+                        className: "text-sm px-3 py-1.5 text-destructive hover:bg-destructive/10 rounded transition-colors",
+                        children: "Delete"
+                    }, void 0, false, {
+                        fileName: "[project]/components/quick-add-popover.tsx",
+                        lineNumber: 448,
+                        columnNumber: 11
+                    }, this),
+                    onViewFullDay && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                        type: "button",
+                        onClick: ()=>{
+                            setOpen(false);
+                            onViewFullDay();
+                        },
+                        className: "text-sm px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors",
+                        children: "More options"
+                    }, void 0, false, {
+                        fileName: "[project]/components/quick-add-popover.tsx",
+                        lineNumber: 457,
+                        columnNumber: 11
+                    }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                         type: "button",
                         onClick: handleAddBlock,
                         disabled: !newBlock.title?.trim(),
-                        className: "flex-1 text-xs uppercase tracking-wider px-4 py-2 bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors",
-                        children: editingBlock ? "Update" : "Add Block"
+                        className: "text-sm px-4 py-1.5 bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors",
+                        children: "Save"
                     }, void 0, false, {
                         fileName: "[project]/components/quick-add-popover.tsx",
-                        lineNumber: 271,
+                        lineNumber: 468,
                         columnNumber: 9
-                    }, this),
-                    editingBlock && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                        type: "button",
-                        onClick: handleDeleteBlock,
-                        className: "text-xs uppercase tracking-wider px-3 py-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors",
-                        children: "Delete"
-                    }, void 0, false, {
-                        fileName: "[project]/components/quick-add-popover.tsx",
-                        lineNumber: 280,
-                        columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/quick-add-popover.tsx",
-                lineNumber: 270,
+                lineNumber: 446,
                 columnNumber: 7
-            }, this),
-            timeBlocks.length > 0 && !editingBlock && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "pt-2 border-t border-border",
-                children: [
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                        className: "text-[10px] uppercase tracking-wider text-muted-foreground",
-                        children: [
-                            "Today (",
-                            timeBlocks.length,
-                            ")"
-                        ]
-                    }, void 0, true, {
-                        fileName: "[project]/components/quick-add-popover.tsx",
-                        lineNumber: 293,
-                        columnNumber: 11
-                    }, this),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "mt-1.5 flex flex-col gap-1 max-h-24 overflow-y-auto",
-                        children: timeBlocks.sort((a, b)=>a.startTime.localeCompare(b.startTime)).map((block)=>{
-                            const cat = __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["BLOCK_CATEGORIES"][block.category];
-                            return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("px-2 py-1 rounded-sm border-l-2 text-[11px]", cat?.bgClass || "bg-muted/50", cat?.borderClass || "border-muted-foreground/50"),
-                                children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                        className: "font-medium",
-                                        children: block.title
-                                    }, void 0, false, {
-                                        fileName: "[project]/components/quick-add-popover.tsx",
-                                        lineNumber: 310,
-                                        columnNumber: 21
-                                    }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                        className: "text-muted-foreground ml-2",
-                                        children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatTimeRange"])(block.startTime, block.endTime)
-                                    }, void 0, false, {
-                                        fileName: "[project]/components/quick-add-popover.tsx",
-                                        lineNumber: 311,
-                                        columnNumber: 21
-                                    }, this)
-                                ]
-                            }, block.id, true, {
-                                fileName: "[project]/components/quick-add-popover.tsx",
-                                lineNumber: 302,
-                                columnNumber: 19
-                            }, this);
-                        })
-                    }, void 0, false, {
-                        fileName: "[project]/components/quick-add-popover.tsx",
-                        lineNumber: 296,
-                        columnNumber: 11
-                    }, this)
-                ]
-            }, void 0, true, {
-                fileName: "[project]/components/quick-add-popover.tsx",
-                lineNumber: 292,
-                columnNumber: 9
-            }, this),
-            onViewFullDay && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                type: "button",
-                onClick: ()=>{
-                    setOpen(false);
-                    onViewFullDay();
-                },
-                className: "text-[11px] text-muted-foreground hover:text-foreground transition-colors text-center py-1",
-                children: "View Full Day →"
-            }, void 0, false, {
-                fileName: "[project]/components/quick-add-popover.tsx",
-                lineNumber: 323,
-                columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/quick-add-popover.tsx",
-        lineNumber: 181,
+        lineNumber: 289,
         columnNumber: 5
     }, this);
-    const dateLabel = `${__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["WEEKDAYS"][date.getDay()]}, ${__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MONTH_NAMES"][date.getMonth()]} ${date.getDate()}`;
     // Before mount, just render children without popover functionality
     // This ensures hydration matches (server renders just children)
     if (!mounted) {
@@ -1262,34 +1591,50 @@ function QuickAddPopover({ children, date, data, onUpdate, onViewFullDay, editBl
                     children: children
                 }, void 0, false, {
                     fileName: "[project]/components/quick-add-popover.tsx",
-                    lineNumber: 349,
+                    lineNumber: 490,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$drawer$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DrawerContent"], {
                     children: [
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$drawer$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DrawerHeader"], {
-                            className: "pb-2",
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$drawer$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DrawerTitle"], {
-                                    className: "text-base font-medium",
-                                    children: editingBlock ? "Edit Block" : "Quick Add"
-                                }, void 0, false, {
-                                    fileName: "[project]/components/quick-add-popover.tsx",
-                                    lineNumber: 352,
-                                    columnNumber: 13
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                    className: "text-sm text-muted-foreground",
-                                    children: dateLabel
-                                }, void 0, false, {
-                                    fileName: "[project]/components/quick-add-popover.tsx",
-                                    lineNumber: 355,
-                                    columnNumber: 13
-                                }, this)
-                            ]
-                        }, void 0, true, {
+                            className: "pb-0",
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "flex items-center justify-between",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$drawer$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DrawerTitle"], {
+                                        className: "text-base font-medium",
+                                        children: editingBlock ? "Edit" : "New event"
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/quick-add-popover.tsx",
+                                        lineNumber: 494,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                        type: "button",
+                                        onClick: ()=>setOpen(false),
+                                        className: "w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted",
+                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                            className: "text-xl leading-none",
+                                            children: "×"
+                                        }, void 0, false, {
+                                            fileName: "[project]/components/quick-add-popover.tsx",
+                                            lineNumber: 502,
+                                            columnNumber: 17
+                                        }, this)
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/quick-add-popover.tsx",
+                                        lineNumber: 497,
+                                        columnNumber: 15
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/components/quick-add-popover.tsx",
+                                lineNumber: 493,
+                                columnNumber: 13
+                            }, this)
+                        }, void 0, false, {
                             fileName: "[project]/components/quick-add-popover.tsx",
-                            lineNumber: 351,
+                            lineNumber: 492,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1297,41 +1642,33 @@ function QuickAddPopover({ children, date, data, onUpdate, onViewFullDay, editBl
                             children: formContent
                         }, void 0, false, {
                             fileName: "[project]/components/quick-add-popover.tsx",
-                            lineNumber: 357,
+                            lineNumber: 506,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/quick-add-popover.tsx",
-                    lineNumber: 350,
+                    lineNumber: 491,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/components/quick-add-popover.tsx",
-            lineNumber: 348,
+            lineNumber: 489,
             columnNumber: 7
         }, this);
     }
-    // Desktop: use Popover with controlled open state
+    // Desktop: use Popover - clean, minimal header
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$popover$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Popover"], {
         open: open,
         onOpenChange: setOpen,
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$popover$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["PopoverTrigger"], {
                 asChild: true,
-                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                    onClick: ()=>setOpen(true),
-                    className: "contents",
-                    children: children
-                }, void 0, false, {
-                    fileName: "[project]/components/quick-add-popover.tsx",
-                    lineNumber: 367,
-                    columnNumber: 9
-                }, this)
+                children: children
             }, void 0, false, {
                 fileName: "[project]/components/quick-add-popover.tsx",
-                lineNumber: 366,
+                lineNumber: 515,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$popover$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["PopoverContent"], {
@@ -1340,52 +1677,38 @@ function QuickAddPopover({ children, date, data, onUpdate, onViewFullDay, editBl
                 side: "right",
                 sideOffset: 8,
                 children: [
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "flex items-center justify-between mb-3",
-                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
-                                    className: "text-sm font-medium",
-                                    children: editingBlock ? "Edit Block" : "Quick Add"
-                                }, void 0, false, {
-                                    fileName: "[project]/components/quick-add-popover.tsx",
-                                    lineNumber: 379,
-                                    columnNumber: 13
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                    className: "text-xs text-muted-foreground",
-                                    children: dateLabel
-                                }, void 0, false, {
-                                    fileName: "[project]/components/quick-add-popover.tsx",
-                                    lineNumber: 382,
-                                    columnNumber: 13
-                                }, this)
-                            ]
-                        }, void 0, true, {
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                        type: "button",
+                        onClick: ()=>setOpen(false),
+                        className: "absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted",
+                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                            className: "text-lg leading-none",
+                            children: "×"
+                        }, void 0, false, {
                             fileName: "[project]/components/quick-add-popover.tsx",
-                            lineNumber: 378,
+                            lineNumber: 529,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/quick-add-popover.tsx",
-                        lineNumber: 377,
+                        lineNumber: 524,
                         columnNumber: 9
                     }, this),
                     formContent
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/quick-add-popover.tsx",
-                lineNumber: 371,
+                lineNumber: 518,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/quick-add-popover.tsx",
-        lineNumber: 365,
+        lineNumber: 514,
         columnNumber: 5
     }, this);
 }
-_s(QuickAddPopover, "uPip8F/QpLs5w2gtMwKlvvL4LO8=");
+_s(QuickAddPopover, "Tjh2/MCfqz5ZdqdNqYO7K7oxa40=");
 _c1 = QuickAddPopover;
 var _c, _c1;
 __turbopack_context__.k.register(_c, "CATEGORY_KEYS");
@@ -1415,7 +1738,7 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
-function DayCell({ day, month, year, data, isToday, onUpdate, selectedDotColor, onDayClick }) {
+function DayCell({ day, month, year, data, allBlocks, isToday, onUpdate, selectedDotColor, onDayClick }) {
     _s();
     const [isEditing, setIsEditing] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [noteValue, setNoteValue] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(data.note);
@@ -1486,14 +1809,22 @@ function DayCell({ day, month, year, data, isToday, onUpdate, selectedDotColor, 
         });
         setColorPickerPos(null);
     };
-    // Get unique time block categories for this day
-    const blockCategories = data.timeBlocks ? [
-        ...new Set(data.timeBlocks.map((b)=>b.category))
+    // Get unique time block categories for this day (use allBlocks which includes recurring)
+    const blocks = allBlocks || data.timeBlocks || [];
+    const blockCategories = blocks.length > 0 ? [
+        ...new Set(blocks.map((b)=>b.category))
     ] : [];
     // Get day color info if set
     const dayColorInfo = data.dayColor ? __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAY_COLORS"][data.dayColor] : null;
+    // Double-click navigates to day view
+    const handleDoubleClick = (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        onDayClick?.();
+    };
     const cellContent = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         onClick: handleShiftClick,
+        onDoubleClick: handleDoubleClick,
         onContextMenu: handleContextMenu,
         className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("relative border-r border-b border-border p-0.5 cursor-pointer min-h-0 overflow-hidden h-full", "transition-colors duration-100", !dayColorInfo && "hover:bg-accent/30", !dayColorInfo && isToday && "bg-accent/50", dayColorInfo && dayColorInfo.bgClass, dayColorInfo && "hover:opacity-80"),
         children: [
@@ -1502,7 +1833,7 @@ function DayCell({ day, month, year, data, isToday, onUpdate, selectedDotColor, 
                 children: day
             }, void 0, false, {
                 fileName: "[project]/components/day-cell.tsx",
-                lineNumber: 112,
+                lineNumber: 123,
                 columnNumber: 7
             }, this),
             data.dots.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1511,12 +1842,12 @@ function DayCell({ day, month, year, data, isToday, onUpdate, selectedDotColor, 
                         className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("w-1.5 h-1.5 rounded-full", __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DOT_COLORS"][dotColor])
                     }, i, false, {
                         fileName: "[project]/components/day-cell.tsx",
-                        lineNumber: 125,
+                        lineNumber: 136,
                         columnNumber: 13
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/components/day-cell.tsx",
-                lineNumber: 123,
+                lineNumber: 134,
                 columnNumber: 9
             }, this),
             blockCategories.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1529,7 +1860,7 @@ function DayCell({ day, month, year, data, isToday, onUpdate, selectedDotColor, 
                             className: "flex-1 bg-muted-foreground/50"
                         }, cat, false, {
                             fileName: "[project]/components/day-cell.tsx",
-                            lineNumber: 141,
+                            lineNumber: 152,
                             columnNumber: 17
                         }, this);
                     }
@@ -1540,13 +1871,13 @@ function DayCell({ day, month, year, data, isToday, onUpdate, selectedDotColor, 
                         }
                     }, cat, false, {
                         fileName: "[project]/components/day-cell.tsx",
-                        lineNumber: 148,
+                        lineNumber: 159,
                         columnNumber: 15
                     }, this);
                 })
             }, void 0, false, {
                 fileName: "[project]/components/day-cell.tsx",
-                lineNumber: 135,
+                lineNumber: 146,
                 columnNumber: 9
             }, this),
             !onDayClick && isEditing ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1560,13 +1891,13 @@ function DayCell({ day, month, year, data, isToday, onUpdate, selectedDotColor, 
                 maxLength: 24
             }, void 0, false, {
                 fileName: "[project]/components/day-cell.tsx",
-                lineNumber: 160,
+                lineNumber: 171,
                 columnNumber: 9
             }, this) : null
         ]
     }, void 0, true, {
         fileName: "[project]/components/day-cell.tsx",
-        lineNumber: 99,
+        lineNumber: 109,
         columnNumber: 5
     }, this);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -1579,7 +1910,7 @@ function DayCell({ day, month, year, data, isToday, onUpdate, selectedDotColor, 
                 children: cellContent
             }, void 0, false, {
                 fileName: "[project]/components/day-cell.tsx",
-                lineNumber: 176,
+                lineNumber: 187,
                 columnNumber: 7
             }, this),
             colorPickerPos && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$day$2d$color$2d$picker$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DayColorPicker"], {
@@ -1590,7 +1921,7 @@ function DayCell({ day, month, year, data, isToday, onUpdate, selectedDotColor, 
                 dateLabel: `${__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MONTH_NAMES_SHORT"][month]} ${day}`
             }, void 0, false, {
                 fileName: "[project]/components/day-cell.tsx",
-                lineNumber: 185,
+                lineNumber: 196,
                 columnNumber: 9
             }, this)
         ]
@@ -1618,8 +1949,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$ty
 ;
 ;
 ;
-const MONTH_NAMES = __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MONTH_NAMES_SHORT"];
-function MonthGrid({ month, year, data, onDayUpdate, selectedDotColor, onDayClick }) {
+function MonthGrid({ month, year, data, onDayUpdate, selectedDotColor, onDayClick, getBlocksForDate }) {
     const daysInMonth = (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getDaysInMonth"])(month, year);
     const firstDay = (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getFirstDayOfMonth"])(month, year);
     const today = new Date();
@@ -1632,21 +1962,21 @@ function MonthGrid({ month, year, data, onDayUpdate, selectedDotColor, onDayClic
     // Always use 6 rows for consistent height across all months
     const totalWeeks = 6;
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-        className: "flex flex-col border-r border-b border-border",
+        className: "flex flex-col",
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "h-4 flex items-center px-1 border-b border-border flex-shrink-0",
+                className: "h-4 flex items-center px-1 border-r border-b border-border flex-shrink-0",
                 children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                     className: "text-[9px] font-medium tracking-wider text-muted-foreground",
                     children: __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MONTH_NAMES_SHORT"][month]
                 }, void 0, false, {
                     fileName: "[project]/components/month-grid.tsx",
-                    lineNumber: 48,
+                    lineNumber: 49,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/components/month-grid.tsx",
-                lineNumber: 47,
+                lineNumber: 48,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1656,52 +1986,56 @@ function MonthGrid({ month, year, data, onDayUpdate, selectedDotColor, onDayClic
                 },
                 children: [
                     emptyDays.map((_, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "border-r border-b border-border/50"
+                            className: "border-r border-b border-border"
                         }, `empty-${i}`, false, {
                             fileName: "[project]/components/month-grid.tsx",
-                            lineNumber: 60,
+                            lineNumber: 61,
                             columnNumber: 11
                         }, this)),
-                    days.map((day)=>{
-                        const dayKey = `${day}`;
+                    days.map((d)=>{
+                        const dayKey = `${d}`;
                         const dayData = data[dayKey] || {
                             note: "",
                             dots: []
                         };
+                        const dateObj = new Date(year, month, d);
+                        // Get all blocks including recurring ones
+                        const allBlocks = getBlocksForDate ? getBlocksForDate(dateObj) : dayData.timeBlocks || [];
                         return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$day$2d$cell$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DayCell"], {
-                            day: day,
+                            day: d,
                             month: month,
                             year: year,
                             data: dayData,
-                            isToday: isCurrentMonth && day === currentDay,
-                            onUpdate: (newData)=>onDayUpdate(day, newData),
+                            allBlocks: allBlocks,
+                            isToday: isCurrentMonth && d === currentDay,
+                            onUpdate: (newData)=>onDayUpdate(d, newData),
                             selectedDotColor: selectedDotColor,
-                            onDayClick: ()=>onDayClick?.(day)
-                        }, day, false, {
+                            onDayClick: ()=>onDayClick?.(d)
+                        }, d, false, {
                             fileName: "[project]/components/month-grid.tsx",
-                            lineNumber: 69,
+                            lineNumber: 73,
                             columnNumber: 13
                         }, this);
                     }),
                     Array.from({
                         length: 42 - firstDay - daysInMonth
                     }).map((_, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "border-r border-b border-border/50"
+                            className: "border-r border-b border-border"
                         }, `fill-${i}`, false, {
                             fileName: "[project]/components/month-grid.tsx",
-                            lineNumber: 87,
+                            lineNumber: 92,
                             columnNumber: 11
                         }, this))
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/month-grid.tsx",
-                lineNumber: 54,
+                lineNumber: 55,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/month-grid.tsx",
-        lineNumber: 45,
+        lineNumber: 46,
         columnNumber: 5
     }, this);
 }
@@ -1733,15 +2067,12 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
-function DayCellLarge({ day, month, year, data, isCurrentDay, onUpdate, selectedDotColor, onDayClick }) {
+function DayCellLarge({ day, month, year, data, allBlocks, isCurrentDay, onUpdate, selectedDotColor, onDayClick }) {
     _s();
     const [colorPickerPos, setColorPickerPos] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
-    const timeBlocks = data.timeBlocks || [];
-    const sortedBlocks = [
-        ...timeBlocks
-    ].sort((a, b)=>a.startTime.localeCompare(b.startTime));
-    const visibleBlocks = sortedBlocks.slice(0, 3);
-    const moreCount = timeBlocks.length - 3;
+    // Use allBlocks which includes recurring blocks (already sorted)
+    const visibleBlocks = allBlocks.slice(0, 3);
+    const moreCount = allBlocks.length - 3;
     // Get day color info
     const dayColorInfo = data.dayColor ? __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAY_COLORS"][data.dayColor] : null;
     // Create date object for the popover
@@ -1760,7 +2091,14 @@ function DayCellLarge({ day, month, year, data, isCurrentDay, onUpdate, selected
         });
         setColorPickerPos(null);
     };
+    // Double-click navigates to day view
+    const handleDoubleClick = (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        onDayClick();
+    };
     const cellContent = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        onDoubleClick: handleDoubleClick,
         onContextMenu: handleContextMenu,
         className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("relative border-r border-b border-border p-1 cursor-pointer min-h-0 flex flex-col gap-0.5 overflow-hidden h-full", "transition-colors duration-100", !dayColorInfo && "hover:bg-accent/30", !dayColorInfo && isCurrentDay && "bg-accent/50", dayColorInfo && dayColorInfo.bgClass, dayColorInfo && "hover:opacity-80"),
         children: [
@@ -1769,7 +2107,7 @@ function DayCellLarge({ day, month, year, data, isCurrentDay, onUpdate, selected
                 children: day
             }, void 0, false, {
                 fileName: "[project]/components/month-view.tsx",
-                lineNumber: 89,
+                lineNumber: 100,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1787,12 +2125,12 @@ function DayCellLarge({ day, month, year, data, isCurrentDay, onUpdate, selected
                                     children: block.title
                                 }, void 0, false, {
                                     fileName: "[project]/components/month-view.tsx",
-                                    lineNumber: 110,
+                                    lineNumber: 121,
                                     columnNumber: 17
                                 }, this)
                             }, block.id, false, {
                                 fileName: "[project]/components/month-view.tsx",
-                                lineNumber: 105,
+                                lineNumber: 116,
                                 columnNumber: 15
                             }, this);
                         }
@@ -1804,12 +2142,12 @@ function DayCellLarge({ day, month, year, data, isCurrentDay, onUpdate, selected
                                 children: block.title || cat.label
                             }, void 0, false, {
                                 fileName: "[project]/components/month-view.tsx",
-                                lineNumber: 124,
+                                lineNumber: 135,
                                 columnNumber: 15
                             }, this)
                         }, block.id, false, {
                             fileName: "[project]/components/month-view.tsx",
-                            lineNumber: 115,
+                            lineNumber: 126,
                             columnNumber: 13
                         }, this);
                     }),
@@ -1822,19 +2160,19 @@ function DayCellLarge({ day, month, year, data, isCurrentDay, onUpdate, selected
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/month-view.tsx",
-                        lineNumber: 129,
+                        lineNumber: 140,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/month-view.tsx",
-                lineNumber: 99,
+                lineNumber: 110,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/month-view.tsx",
-        lineNumber: 77,
+        lineNumber: 87,
         columnNumber: 5
     }, this);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -1847,7 +2185,7 @@ function DayCellLarge({ day, month, year, data, isCurrentDay, onUpdate, selected
                 children: cellContent
             }, void 0, false, {
                 fileName: "[project]/components/month-view.tsx",
-                lineNumber: 137,
+                lineNumber: 148,
                 columnNumber: 7
             }, this),
             colorPickerPos && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$day$2d$color$2d$picker$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DayColorPicker"], {
@@ -1858,7 +2196,7 @@ function DayCellLarge({ day, month, year, data, isCurrentDay, onUpdate, selected
                 dateLabel: `${__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MONTH_NAMES_SHORT"][month]} ${day}`
             }, void 0, false, {
                 fileName: "[project]/components/month-view.tsx",
-                lineNumber: 147,
+                lineNumber: 158,
                 columnNumber: 9
             }, this)
         ]
@@ -1866,7 +2204,7 @@ function DayCellLarge({ day, month, year, data, isCurrentDay, onUpdate, selected
 }
 _s(DayCellLarge, "iv441pfGPWp4KVaQ9fGw//zvvEE=");
 _c = DayCellLarge;
-function MonthView({ year, month, data, onDayUpdate, selectedDotColor, onDayClick }) {
+function MonthView({ year, month, data, onDayUpdate, selectedDotColor, onDayClick, getBlocksForDate }) {
     const daysInMonth = (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getDaysInMonth"])(month, year);
     const firstDay = (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getFirstDayOfMonth"])(month, year);
     const emptyDays = Array(firstDay).fill(null);
@@ -1879,7 +2217,7 @@ function MonthView({ year, month, data, onDayUpdate, selectedDotColor, onDayClic
     const monthKey = `${year}-${month}`;
     const monthData = data[monthKey] || {};
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-        className: "h-full flex flex-col border-l border-t border-border",
+        className: "h-full flex flex-col",
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "grid grid-cols-7 border-b border-border",
@@ -1888,12 +2226,12 @@ function MonthView({ year, month, data, onDayUpdate, selectedDotColor, onDayClic
                         children: day
                     }, i, false, {
                         fileName: "[project]/components/month-view.tsx",
-                        lineNumber: 184,
+                        lineNumber: 196,
                         columnNumber: 11
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/components/month-view.tsx",
-                lineNumber: 182,
+                lineNumber: 194,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1903,52 +2241,56 @@ function MonthView({ year, month, data, onDayUpdate, selectedDotColor, onDayClic
                 },
                 children: [
                     emptyDays.map((_, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "border-r border-b border-border/50"
+                            className: "border-r border-b border-border"
                         }, `empty-${i}`, false, {
                             fileName: "[project]/components/month-view.tsx",
-                            lineNumber: 200,
+                            lineNumber: 212,
                             columnNumber: 11
                         }, this)),
-                    days.map((day)=>{
-                        const dayKey = `${day}`;
+                    days.map((d)=>{
+                        const dayKey = `${d}`;
                         const dayData = monthData[dayKey] || {
                             note: "",
                             dots: []
                         };
+                        const dateObj = new Date(year, month, d);
+                        // Get all blocks including recurring ones
+                        const allBlocks = getBlocksForDate ? getBlocksForDate(dateObj) : dayData.timeBlocks || [];
                         return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(DayCellLarge, {
-                            day: day,
+                            day: d,
                             month: month,
                             year: year,
                             data: dayData,
-                            isCurrentDay: (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["isToday"])(year, month, day),
-                            onUpdate: (newData)=>onDayUpdate(month, day, newData),
+                            allBlocks: allBlocks,
+                            isCurrentDay: (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["isToday"])(year, month, d),
+                            onUpdate: (newData)=>onDayUpdate(month, d, newData),
                             selectedDotColor: selectedDotColor,
-                            onDayClick: ()=>onDayClick(day)
-                        }, day, false, {
+                            onDayClick: ()=>onDayClick(d)
+                        }, d, false, {
                             fileName: "[project]/components/month-view.tsx",
-                            lineNumber: 209,
+                            lineNumber: 224,
                             columnNumber: 13
                         }, this);
                     }),
                     Array.from({
                         length: remainingCells
                     }).map((_, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "border-r border-b border-border/50"
+                            className: "border-r border-b border-border"
                         }, `fill-${i}`, false, {
                             fileName: "[project]/components/month-view.tsx",
-                            lineNumber: 225,
+                            lineNumber: 241,
                             columnNumber: 11
                         }, this))
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/month-view.tsx",
-                lineNumber: 194,
+                lineNumber: 206,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/month-view.tsx",
-        lineNumber: 180,
+        lineNumber: 192,
         columnNumber: 5
     }, this);
 }
@@ -1981,7 +2323,7 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
-function WeekView({ weekStart, getData, onUpdate, selectedDotColor, onDayClick }) {
+function WeekView({ weekStart, getData, onUpdate, selectedDotColor, onDayClick, getBlocksForDate }) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const days = Array.from({
@@ -1992,38 +2334,38 @@ function WeekView({ weekStart, getData, onUpdate, selectedDotColor, onDayClick }
         return d;
     });
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-        className: "h-full flex border-l border-t border-border",
+        className: "h-full flex",
         children: days.map((date, i)=>{
             const isToday = date.getTime() === today.getTime();
             const dayData = getData(date.getFullYear(), date.getMonth(), date.getDate());
+            // Get all blocks including recurring ones
+            const allBlocks = getBlocksForDate ? getBlocksForDate(date) : dayData.timeBlocks || [];
             return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(WeekDayColumn, {
                 date: date,
                 data: dayData,
+                allBlocks: allBlocks,
                 isToday: isToday,
                 onUpdate: (data)=>onUpdate(date.getFullYear(), date.getMonth(), date.getDate(), data),
                 selectedDotColor: selectedDotColor,
                 onDayClick: onDayClick
             }, i, false, {
                 fileName: "[project]/components/week-view.tsx",
-                lineNumber: 51,
+                lineNumber: 56,
                 columnNumber: 11
             }, this);
         })
     }, void 0, false, {
         fileName: "[project]/components/week-view.tsx",
-        lineNumber: 45,
+        lineNumber: 48,
         columnNumber: 5
     }, this);
 }
 _c = WeekView;
-function WeekDayColumn({ date, data, isToday, onDayClick, onUpdate }) {
+function WeekDayColumn({ date, data, allBlocks, isToday, onDayClick, onUpdate }) {
     _s();
     const [colorPickerPos, setColorPickerPos] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
-    const timeBlocks = data.timeBlocks || [];
-    // Sort by start time
-    const sortedBlocks = [
-        ...timeBlocks
-    ].sort((a, b)=>a.startTime.localeCompare(b.startTime));
+    // Use allBlocks which includes recurring blocks (already sorted)
+    const sortedBlocks = allBlocks;
     // Get day color info
     const dayColorInfo = data.dayColor ? __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAY_COLORS"][data.dayColor] : null;
     const handleContextMenu = (e)=>{
@@ -2040,8 +2382,15 @@ function WeekDayColumn({ date, data, isToday, onDayClick, onUpdate }) {
         });
         setColorPickerPos(null);
     };
+    // Double-click navigates to day view
+    const handleDoubleClick = (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        onDayClick?.(date);
+    };
     // Day header content (for adding new blocks)
     const dayHeader = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        onDoubleClick: handleDoubleClick,
         className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("flex flex-col items-center py-2 border-b border-border cursor-pointer flex-shrink-0", "hover:bg-accent/30 transition-colors", !dayColorInfo && isToday && "bg-accent/50"),
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2049,7 +2398,7 @@ function WeekDayColumn({ date, data, isToday, onDayClick, onUpdate }) {
                 children: __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["WEEKDAYS"][date.getDay()]
             }, void 0, false, {
                 fileName: "[project]/components/week-view.tsx",
-                lineNumber: 110,
+                lineNumber: 125,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2057,7 +2406,7 @@ function WeekDayColumn({ date, data, isToday, onDayClick, onUpdate }) {
                 children: date.getDate()
             }, void 0, false, {
                 fileName: "[project]/components/week-view.tsx",
-                lineNumber: 113,
+                lineNumber: 128,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2065,29 +2414,13 @@ function WeekDayColumn({ date, data, isToday, onDayClick, onUpdate }) {
                 children: __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MONTH_NAMES_SHORT"][date.getMonth()]
             }, void 0, false, {
                 fileName: "[project]/components/week-view.tsx",
-                lineNumber: 119,
+                lineNumber: 134,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/week-view.tsx",
-        lineNumber: 103,
-        columnNumber: 5
-    }, this);
-    // Empty state content (for adding new blocks)
-    const emptyState = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-        className: "flex-1 flex items-center justify-center cursor-pointer hover:bg-accent/20 transition-colors rounded",
-        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-            className: "text-[10px] text-muted-foreground/50",
-            children: "+ Add"
-        }, void 0, false, {
-            fileName: "[project]/components/week-view.tsx",
-            lineNumber: 130,
-            columnNumber: 7
-        }, this)
-    }, void 0, false, {
-        fileName: "[project]/components/week-view.tsx",
-        lineNumber: 127,
+        lineNumber: 117,
         columnNumber: 5
     }, this);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -2104,72 +2437,90 @@ function WeekDayColumn({ date, data, isToday, onDayClick, onUpdate }) {
                         children: dayHeader
                     }, void 0, false, {
                         fileName: "[project]/components/week-view.tsx",
-                        lineNumber: 144,
+                        lineNumber: 150,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "flex-1 p-1.5 overflow-y-auto flex flex-col gap-1",
-                        children: sortedBlocks.length > 0 ? sortedBlocks.map((block)=>{
-                            const cat = __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["BLOCK_CATEGORIES"][block.category];
-                            // Block card content
-                            const blockCard = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("px-2 py-1.5 rounded border-l-2 cursor-pointer", "hover:opacity-80 transition-opacity", cat?.bgClass || "bg-muted/50", cat?.borderClass || "border-muted-foreground/50"),
-                                children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        className: "text-[10px] font-medium truncate",
-                                        children: block.title || cat?.label || "Event"
-                                    }, void 0, false, {
-                                        fileName: "[project]/components/week-view.tsx",
-                                        lineNumber: 168,
-                                        columnNumber: 19
-                                    }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        className: "text-[9px] text-muted-foreground",
-                                        children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatTimeRange"])(block.startTime, block.endTime)
-                                    }, void 0, false, {
-                                        fileName: "[project]/components/week-view.tsx",
-                                        lineNumber: 171,
-                                        columnNumber: 19
-                                    }, this)
-                                ]
-                            }, void 0, true, {
-                                fileName: "[project]/components/week-view.tsx",
-                                lineNumber: 160,
-                                columnNumber: 17
-                            }, this);
-                            // Wrap each block in popover for editing
-                            return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$quick$2d$add$2d$popover$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["QuickAddPopover"], {
+                        children: [
+                            sortedBlocks.map((block)=>{
+                                const cat = __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["BLOCK_CATEGORIES"][block.category];
+                                // Block card content
+                                const blockCard = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("px-2 py-1.5 rounded border-l-2 cursor-pointer", "hover:opacity-80 transition-opacity", cat?.bgClass || "bg-muted/50", cat?.borderClass || "border-muted-foreground/50"),
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "text-[10px] font-medium truncate",
+                                            children: block.title || cat?.label || "Event"
+                                        }, void 0, false, {
+                                            fileName: "[project]/components/week-view.tsx",
+                                            lineNumber: 174,
+                                            columnNumber: 17
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "text-[9px] text-muted-foreground",
+                                            children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatTimeRange"])(block.startTime, block.endTime)
+                                        }, void 0, false, {
+                                            fileName: "[project]/components/week-view.tsx",
+                                            lineNumber: 177,
+                                            columnNumber: 17
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/components/week-view.tsx",
+                                    lineNumber: 166,
+                                    columnNumber: 15
+                                }, this);
+                                // Wrap each block in popover for editing
+                                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$quick$2d$add$2d$popover$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["QuickAddPopover"], {
+                                    date: date,
+                                    data: data,
+                                    onUpdate: onUpdate,
+                                    onViewFullDay: ()=>onDayClick?.(date),
+                                    editBlockId: block.id,
+                                    children: blockCard
+                                }, block.id, false, {
+                                    fileName: "[project]/components/week-view.tsx",
+                                    lineNumber: 185,
+                                    columnNumber: 15
+                                }, this);
+                            }),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$quick$2d$add$2d$popover$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["QuickAddPopover"], {
                                 date: date,
                                 data: data,
                                 onUpdate: onUpdate,
                                 onViewFullDay: ()=>onDayClick?.(date),
-                                editBlockId: block.id,
-                                children: blockCard
-                            }, block.id, false, {
+                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    onDoubleClick: handleDoubleClick,
+                                    className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("flex items-center justify-center cursor-pointer hover:bg-accent/20 transition-colors rounded", sortedBlocks.length > 0 ? "py-2" : "flex-1"),
+                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "text-[10px] text-muted-foreground/50",
+                                        children: "+ Add"
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/week-view.tsx",
+                                        lineNumber: 212,
+                                        columnNumber: 15
+                                    }, this)
+                                }, void 0, false, {
+                                    fileName: "[project]/components/week-view.tsx",
+                                    lineNumber: 205,
+                                    columnNumber: 13
+                                }, this)
+                            }, void 0, false, {
                                 fileName: "[project]/components/week-view.tsx",
-                                lineNumber: 179,
-                                columnNumber: 17
-                            }, this);
-                        }) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$quick$2d$add$2d$popover$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["QuickAddPopover"], {
-                            date: date,
-                            data: data,
-                            onUpdate: onUpdate,
-                            onViewFullDay: ()=>onDayClick?.(date),
-                            children: emptyState
-                        }, void 0, false, {
-                            fileName: "[project]/components/week-view.tsx",
-                            lineNumber: 192,
-                            columnNumber: 13
-                        }, this)
-                    }, void 0, false, {
+                                lineNumber: 199,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
                         fileName: "[project]/components/week-view.tsx",
-                        lineNumber: 154,
+                        lineNumber: 160,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/week-view.tsx",
-                lineNumber: 136,
+                lineNumber: 142,
                 columnNumber: 7
             }, this),
             colorPickerPos && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$day$2d$color$2d$picker$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DayColorPicker"], {
@@ -2180,7 +2531,7 @@ function WeekDayColumn({ date, data, isToday, onDayClick, onUpdate }) {
                 dateLabel: `${__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MONTH_NAMES_SHORT"][date.getMonth()]} ${date.getDate()}`
             }, void 0, false, {
                 fileName: "[project]/components/week-view.tsx",
-                lineNumber: 205,
+                lineNumber: 219,
                 columnNumber: 9
             }, this)
         ]
@@ -4621,13 +4972,15 @@ function ThemeToggle() {
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
         type: "button",
         onClick: toggleTheme,
+        "data-theme-toggle": true,
+        "aria-label": `Switch to ${theme === "light" ? "dark" : "light"} mode`,
         className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("relative w-8 h-4 rounded-full transition-colors duration-200", "border border-border", theme === "dark" ? "bg-foreground/20" : "bg-muted"),
         title: `Switch to ${theme === "light" ? "dark" : "light"} mode`,
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
             className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all duration-200", "flex items-center justify-center text-[6px]", theme === "dark" ? "left-[calc(100%-12px)] bg-foreground" : "left-0.5 bg-foreground/70")
         }, void 0, false, {
             fileName: "[project]/components/theme-toggle.tsx",
-            lineNumber: 50,
+            lineNumber: 52,
             columnNumber: 7
         }, this)
     }, void 0, false, {
@@ -4661,45 +5014,465 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
-function OmniBar({ onAction }) {
+function OmniBar({ onAction, canUndo = false, canRedo = false }) {
     _s();
-    const [isExpanded, setIsExpanded] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
-    const [input, setInput] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
-    const [messages, setMessages] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
-    const [isThinking, setIsThinking] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [isOpen, setIsOpen] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [search, setSearch] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
+    const [selectedIndex, setSelectedIndex] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(0);
     const inputRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
-    const messagesEndRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
-    // Focus input when expanded
+    const listRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
+    // Define all commands
+    const commands = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
+        "OmniBar.useMemo[commands]": ()=>{
+            const cmds = [
+                // Actions (most common first)
+                {
+                    id: "new-event",
+                    label: "New event",
+                    shortcut: "N",
+                    group: "Actions",
+                    action: {
+                        "OmniBar.useMemo[commands]": ()=>{
+                            onAction?.({
+                                type: "new_event",
+                                payload: {
+                                    date: new Date()
+                                }
+                            });
+                            setIsOpen(false);
+                        }
+                    }["OmniBar.useMemo[commands]"]
+                },
+                {
+                    id: "undo",
+                    label: canUndo ? "Undo last change" : "Undo (nothing to undo)",
+                    shortcut: "⌘Z",
+                    group: "Actions",
+                    action: {
+                        "OmniBar.useMemo[commands]": ()=>{
+                            if (canUndo) {
+                                onAction?.({
+                                    type: "undo",
+                                    payload: {}
+                                });
+                            }
+                            setIsOpen(false);
+                        }
+                    }["OmniBar.useMemo[commands]"]
+                },
+                {
+                    id: "redo",
+                    label: canRedo ? "Redo" : "Redo (nothing to redo)",
+                    shortcut: "⌘⇧Z",
+                    group: "Actions",
+                    action: {
+                        "OmniBar.useMemo[commands]": ()=>{
+                            if (canRedo) {
+                                onAction?.({
+                                    type: "redo",
+                                    payload: {}
+                                });
+                            }
+                            setIsOpen(false);
+                        }
+                    }["OmniBar.useMemo[commands]"]
+                },
+                {
+                    id: "toggle-theme",
+                    label: "Toggle dark/light mode",
+                    shortcut: "\\",
+                    group: "Actions",
+                    action: {
+                        "OmniBar.useMemo[commands]": ()=>{
+                            onAction?.({
+                                type: "toggle_theme",
+                                payload: {}
+                            });
+                            setIsOpen(false);
+                        }
+                    }["OmniBar.useMemo[commands]"]
+                },
+                // Navigation
+                {
+                    id: "today",
+                    label: "Go to today",
+                    shortcut: "T",
+                    group: "Navigation",
+                    action: {
+                        "OmniBar.useMemo[commands]": ()=>{
+                            onAction?.({
+                                type: "navigate",
+                                payload: {
+                                    date: new Date()
+                                }
+                            });
+                            setIsOpen(false);
+                        }
+                    }["OmniBar.useMemo[commands]"]
+                },
+                {
+                    id: "tomorrow",
+                    label: "Go to tomorrow",
+                    group: "Navigation",
+                    action: {
+                        "OmniBar.useMemo[commands]": ()=>{
+                            const d = new Date();
+                            d.setDate(d.getDate() + 1);
+                            onAction?.({
+                                type: "navigate",
+                                payload: {
+                                    date: d
+                                }
+                            });
+                            setIsOpen(false);
+                        }
+                    }["OmniBar.useMemo[commands]"]
+                },
+                {
+                    id: "yesterday",
+                    label: "Go to yesterday",
+                    group: "Navigation",
+                    action: {
+                        "OmniBar.useMemo[commands]": ()=>{
+                            const d = new Date();
+                            d.setDate(d.getDate() - 1);
+                            onAction?.({
+                                type: "navigate",
+                                payload: {
+                                    date: d
+                                }
+                            });
+                            setIsOpen(false);
+                        }
+                    }["OmniBar.useMemo[commands]"]
+                },
+                {
+                    id: "next-week",
+                    label: "Next week",
+                    group: "Navigation",
+                    action: {
+                        "OmniBar.useMemo[commands]": ()=>{
+                            const d = new Date();
+                            d.setDate(d.getDate() + 7);
+                            onAction?.({
+                                type: "navigate",
+                                payload: {
+                                    date: d
+                                }
+                            });
+                            onAction?.({
+                                type: "set_view",
+                                payload: {
+                                    view: "week"
+                                }
+                            });
+                            setIsOpen(false);
+                        }
+                    }["OmniBar.useMemo[commands]"]
+                },
+                {
+                    id: "prev-week",
+                    label: "Previous week",
+                    group: "Navigation",
+                    action: {
+                        "OmniBar.useMemo[commands]": ()=>{
+                            const d = new Date();
+                            d.setDate(d.getDate() - 7);
+                            onAction?.({
+                                type: "navigate",
+                                payload: {
+                                    date: d
+                                }
+                            });
+                            onAction?.({
+                                type: "set_view",
+                                payload: {
+                                    view: "week"
+                                }
+                            });
+                            setIsOpen(false);
+                        }
+                    }["OmniBar.useMemo[commands]"]
+                },
+                // Views
+                {
+                    id: "year-view",
+                    label: "Year view",
+                    shortcut: "Y",
+                    group: "Views",
+                    action: {
+                        "OmniBar.useMemo[commands]": ()=>{
+                            onAction?.({
+                                type: "set_view",
+                                payload: {
+                                    view: "year"
+                                }
+                            });
+                            setIsOpen(false);
+                        }
+                    }["OmniBar.useMemo[commands]"]
+                },
+                {
+                    id: "month-view",
+                    label: "Month view",
+                    shortcut: "M",
+                    group: "Views",
+                    action: {
+                        "OmniBar.useMemo[commands]": ()=>{
+                            onAction?.({
+                                type: "set_view",
+                                payload: {
+                                    view: "month"
+                                }
+                            });
+                            setIsOpen(false);
+                        }
+                    }["OmniBar.useMemo[commands]"]
+                },
+                {
+                    id: "week-view",
+                    label: "Week view",
+                    shortcut: "W",
+                    group: "Views",
+                    action: {
+                        "OmniBar.useMemo[commands]": ()=>{
+                            onAction?.({
+                                type: "set_view",
+                                payload: {
+                                    view: "week"
+                                }
+                            });
+                            setIsOpen(false);
+                        }
+                    }["OmniBar.useMemo[commands]"]
+                },
+                {
+                    id: "day-view",
+                    label: "Day view",
+                    shortcut: "D",
+                    group: "Views",
+                    action: {
+                        "OmniBar.useMemo[commands]": ()=>{
+                            onAction?.({
+                                type: "set_view",
+                                payload: {
+                                    view: "day"
+                                }
+                            });
+                            setIsOpen(false);
+                        }
+                    }["OmniBar.useMemo[commands]"]
+                },
+                // Month navigation
+                ...__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MONTH_NAMES"].map({
+                    "OmniBar.useMemo[commands]": (name, index)=>({
+                            id: `month-${index}`,
+                            label: `Go to ${name}`,
+                            group: "Months",
+                            action: ({
+                                "OmniBar.useMemo[commands]": ()=>{
+                                    const d = new Date();
+                                    d.setMonth(index);
+                                    d.setDate(1);
+                                    onAction?.({
+                                        type: "navigate",
+                                        payload: {
+                                            date: d
+                                        }
+                                    });
+                                    onAction?.({
+                                        type: "set_view",
+                                        payload: {
+                                            view: "month"
+                                        }
+                                    });
+                                    setIsOpen(false);
+                                }
+                            })["OmniBar.useMemo[commands]"]
+                        })
+                }["OmniBar.useMemo[commands]"])
+            ];
+            return cmds;
+        }
+    }["OmniBar.useMemo[commands]"], [
+        onAction,
+        canUndo,
+        canRedo
+    ]);
+    // Filter commands based on search
+    const filteredCommands = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
+        "OmniBar.useMemo[filteredCommands]": ()=>{
+            if (!search) return commands;
+            const lower = search.toLowerCase();
+            return commands.filter({
+                "OmniBar.useMemo[filteredCommands]": (cmd)=>cmd.label.toLowerCase().includes(lower) || cmd.group.toLowerCase().includes(lower)
+            }["OmniBar.useMemo[filteredCommands]"]);
+        }
+    }["OmniBar.useMemo[filteredCommands]"], [
+        commands,
+        search
+    ]);
+    // Group filtered commands
+    const groupedCommands = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
+        "OmniBar.useMemo[groupedCommands]": ()=>{
+            const groups = {};
+            for (const cmd of filteredCommands){
+                if (!groups[cmd.group]) groups[cmd.group] = [];
+                groups[cmd.group].push(cmd);
+            }
+            return groups;
+        }
+    }["OmniBar.useMemo[groupedCommands]"], [
+        filteredCommands
+    ]);
+    // Reset selection when search changes
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "OmniBar.useEffect": ()=>{
-            if (isExpanded && inputRef.current) {
+            setSelectedIndex(0);
+        }
+    }["OmniBar.useEffect"], [
+        search
+    ]);
+    // Focus input when opened
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "OmniBar.useEffect": ()=>{
+            if (isOpen && inputRef.current) {
                 inputRef.current.focus();
+                setSearch("");
+                setSelectedIndex(0);
             }
         }
     }["OmniBar.useEffect"], [
-        isExpanded
+        isOpen
     ]);
-    // Scroll to bottom when messages change
-    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
-        "OmniBar.useEffect": ()=>{
-            messagesEndRef.current?.scrollIntoView({
-                behavior: "smooth"
-            });
-        }
-    }["OmniBar.useEffect"], [
-        messages
-    ]);
-    // Keyboard shortcut to open
+    // Keyboard shortcuts
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "OmniBar.useEffect": ()=>{
             const handleKeyDown = {
                 "OmniBar.useEffect.handleKeyDown": (e)=>{
+                    const isInInput = document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA";
+                    // Cmd+K to open command palette (works everywhere)
                     if ((e.metaKey || e.ctrlKey) && e.key === "k") {
                         e.preventDefault();
-                        setIsExpanded(true);
+                        setIsOpen(true);
+                        return;
                     }
-                    if (e.key === "Escape" && isExpanded) {
-                        setIsExpanded(false);
+                    // Cmd+Z for undo (works everywhere except inputs)
+                    if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey && !isInInput) {
+                        e.preventDefault();
+                        if (canUndo) {
+                            onAction?.({
+                                type: "undo",
+                                payload: {}
+                            });
+                        }
+                        return;
+                    }
+                    // Cmd+Shift+Z for redo (works everywhere except inputs)
+                    if ((e.metaKey || e.ctrlKey) && e.key === "z" && e.shiftKey && !isInInput) {
+                        e.preventDefault();
+                        if (canRedo) {
+                            onAction?.({
+                                type: "redo",
+                                payload: {}
+                            });
+                        }
+                        return;
+                    }
+                    // Global shortcuts when not in an input and palette is closed
+                    if (!isInInput && !isOpen) {
+                        // T for today
+                        if (e.key === "t" && !e.metaKey && !e.ctrlKey) {
+                            onAction?.({
+                                type: "navigate",
+                                payload: {
+                                    date: new Date()
+                                }
+                            });
+                            return;
+                        }
+                        // N for new event
+                        if (e.key === "n" && !e.metaKey && !e.ctrlKey) {
+                            onAction?.({
+                                type: "new_event",
+                                payload: {
+                                    date: new Date()
+                                }
+                            });
+                            return;
+                        }
+                        // \ (backslash) for toggle theme
+                        if ((e.key === "\\" || e.code === "Backslash") && !e.metaKey && !e.ctrlKey) {
+                            e.preventDefault();
+                            onAction?.({
+                                type: "toggle_theme",
+                                payload: {}
+                            });
+                            return;
+                        }
+                        // Y/M/W/D for views
+                        if (e.key === "y" && !e.metaKey && !e.ctrlKey) {
+                            onAction?.({
+                                type: "set_view",
+                                payload: {
+                                    view: "year"
+                                }
+                            });
+                            return;
+                        }
+                        if (e.key === "m" && !e.metaKey && !e.ctrlKey) {
+                            onAction?.({
+                                type: "set_view",
+                                payload: {
+                                    view: "month"
+                                }
+                            });
+                            return;
+                        }
+                        if (e.key === "w" && !e.metaKey && !e.ctrlKey) {
+                            onAction?.({
+                                type: "set_view",
+                                payload: {
+                                    view: "week"
+                                }
+                            });
+                            return;
+                        }
+                        if (e.key === "d" && !e.metaKey && !e.ctrlKey) {
+                            onAction?.({
+                                type: "set_view",
+                                payload: {
+                                    view: "day"
+                                }
+                            });
+                            return;
+                        }
+                    }
+                    // When palette is open
+                    if (isOpen) {
+                        if (e.key === "Escape") {
+                            setIsOpen(false);
+                            return;
+                        }
+                        if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            setSelectedIndex({
+                                "OmniBar.useEffect.handleKeyDown": (i)=>Math.min(i + 1, filteredCommands.length - 1)
+                            }["OmniBar.useEffect.handleKeyDown"]);
+                            return;
+                        }
+                        if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            setSelectedIndex({
+                                "OmniBar.useEffect.handleKeyDown": (i)=>Math.max(i - 1, 0)
+                            }["OmniBar.useEffect.handleKeyDown"]);
+                            return;
+                        }
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            filteredCommands[selectedIndex]?.action();
+                            return;
+                        }
                     }
                 }
             }["OmniBar.useEffect.handleKeyDown"];
@@ -4709,550 +5482,261 @@ function OmniBar({ onAction }) {
             })["OmniBar.useEffect"];
         }
     }["OmniBar.useEffect"], [
-        isExpanded
+        isOpen,
+        filteredCommands,
+        selectedIndex,
+        onAction,
+        canUndo,
+        canRedo
     ]);
-    const suggestions = [
-        {
-            id: "today",
-            icon: "~",
-            label: "Go to today",
-            description: "Jump to current date",
-            action: ()=>{
-                onAction?.({
-                    type: "navigate",
-                    payload: {
-                        date: new Date()
-                    }
+    // Scroll selected item into view
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "OmniBar.useEffect": ()=>{
+            if (listRef.current) {
+                const selectedEl = listRef.current.querySelector(`[data-index="${selectedIndex}"]`);
+                selectedEl?.scrollIntoView({
+                    block: "nearest"
                 });
-                addAssistantMessage("Navigated to today.");
-            }
-        },
-        {
-            id: "week",
-            icon: "W",
-            label: "Week view",
-            description: "Switch to week view",
-            action: ()=>{
-                onAction?.({
-                    type: "set_view",
-                    payload: {
-                        view: "week"
-                    }
-                });
-                addAssistantMessage("Switched to week view.");
-            }
-        },
-        {
-            id: "month",
-            icon: "M",
-            label: "Month view",
-            description: "Switch to month view",
-            action: ()=>{
-                onAction?.({
-                    type: "set_view",
-                    payload: {
-                        view: "month"
-                    }
-                });
-                addAssistantMessage("Switched to month view.");
-            }
-        },
-        {
-            id: "year",
-            icon: "Y",
-            label: "Year view",
-            description: "See annual overview",
-            action: ()=>{
-                onAction?.({
-                    type: "set_view",
-                    payload: {
-                        view: "year"
-                    }
-                });
-                addAssistantMessage("Switched to year view.");
             }
         }
-    ];
-    const addAssistantMessage = (content)=>{
-        setMessages((prev)=>[
-                ...prev,
-                {
-                    id: `msg-${Date.now()}`,
-                    role: "assistant",
-                    content,
-                    timestamp: new Date()
-                }
-            ]);
-    };
-    const parseNaturalLanguage = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
-        "OmniBar.useCallback[parseNaturalLanguage]": (text)=>{
-            const lower = text.toLowerCase().trim();
-            // View switching
-            if (lower.includes("year view") || lower === "year" || lower === "y") {
-                onAction?.({
-                    type: "set_view",
-                    payload: {
-                        view: "year"
-                    }
-                });
-                return "Switched to year view.";
-            }
-            if (lower.includes("month view") || lower === "month" || lower === "m") {
-                onAction?.({
-                    type: "set_view",
-                    payload: {
-                        view: "month"
-                    }
-                });
-                return "Switched to month view.";
-            }
-            if (lower.includes("week view") || lower === "week" || lower === "w") {
-                onAction?.({
-                    type: "set_view",
-                    payload: {
-                        view: "week"
-                    }
-                });
-                return "Switched to week view.";
-            }
-            if (lower.includes("day view") || lower === "day" || lower === "d") {
-                onAction?.({
-                    type: "set_view",
-                    payload: {
-                        view: "day"
-                    }
-                });
-                return "Switched to day view.";
-            }
-            // Navigation
-            if (lower === "today" || lower === "now" || lower === "go to today") {
-                onAction?.({
-                    type: "navigate",
-                    payload: {
-                        date: new Date()
-                    }
-                });
-                return "Navigated to today.";
-            }
-            if (lower === "tomorrow") {
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                onAction?.({
-                    type: "navigate",
-                    payload: {
-                        date: tomorrow
-                    }
-                });
-                return `Navigated to tomorrow (${__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MONTH_NAMES"][tomorrow.getMonth()]} ${tomorrow.getDate()}).`;
-            }
-            if (lower === "yesterday") {
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                onAction?.({
-                    type: "navigate",
-                    payload: {
-                        date: yesterday
-                    }
-                });
-                return `Navigated to yesterday (${__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MONTH_NAMES"][yesterday.getMonth()]} ${yesterday.getDate()}).`;
-            }
-            // Next/previous week
-            if (lower === "next week") {
-                const nextWeek = new Date();
-                nextWeek.setDate(nextWeek.getDate() + 7);
-                onAction?.({
-                    type: "navigate",
-                    payload: {
-                        date: nextWeek
-                    }
-                });
-                onAction?.({
-                    type: "set_view",
-                    payload: {
-                        view: "week"
-                    }
-                });
-                return "Navigated to next week.";
-            }
-            if (lower === "last week" || lower === "previous week") {
-                const lastWeek = new Date();
-                lastWeek.setDate(lastWeek.getDate() - 7);
-                onAction?.({
-                    type: "navigate",
-                    payload: {
-                        date: lastWeek
-                    }
-                });
-                onAction?.({
-                    type: "set_view",
-                    payload: {
-                        view: "week"
-                    }
-                });
-                return "Navigated to last week.";
-            }
-            // Month navigation
-            const monthMatch = lower.match(/^(january|february|march|april|may|june|july|august|september|october|november|december)$/);
-            if (monthMatch) {
-                const monthIndex = __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MONTH_NAMES"].findIndex({
-                    "OmniBar.useCallback[parseNaturalLanguage].monthIndex": (m)=>m.toLowerCase() === monthMatch[1]
-                }["OmniBar.useCallback[parseNaturalLanguage].monthIndex"]);
-                if (monthIndex !== -1) {
-                    const date = new Date();
-                    date.setMonth(monthIndex);
-                    date.setDate(1);
-                    onAction?.({
-                        type: "navigate",
-                        payload: {
-                            date
-                        }
-                    });
-                    onAction?.({
-                        type: "set_view",
-                        payload: {
-                            view: "month"
-                        }
-                    });
-                    return `Navigated to ${__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MONTH_NAMES"][monthIndex]}.`;
-                }
-            }
-            // Add note pattern: "add note: ..." or "note: ..."
-            const noteMatch = lower.match(/^(?:add\s+)?note[:\s]+(.+)$/);
-            if (noteMatch) {
-                onAction?.({
-                    type: "add_note",
-                    payload: {
-                        date: new Date(),
-                        note: noteMatch[1]
-                    }
-                });
-                return `Added note to today: "${noteMatch[1]}"`;
-            }
-            // Add dot pattern - maps to new 7-color palette
-            const dotMatch = lower.match(/^(?:add\s+)?(?:dot|marker|mark)\s*(periwinkle|lavender|cream|yellow|sage|green|brown|maroon|magenta|pink|terracotta|orange|gray|grey)?$/);
-            if (dotMatch) {
-                const colorMap = {
-                    periwinkle: 1,
-                    lavender: 1,
-                    cream: 2,
-                    yellow: 2,
-                    sage: 3,
-                    green: 3,
-                    brown: 4,
-                    maroon: 4,
-                    magenta: 5,
-                    pink: 5,
-                    terracotta: 6,
-                    orange: 6,
-                    gray: 7,
-                    grey: 7
-                };
-                const color = dotMatch[1] ? colorMap[dotMatch[1]] : 1;
-                onAction?.({
-                    type: "add_dot",
-                    payload: {
-                        date: new Date(),
-                        dotColor: color
-                    }
-                });
-                return `Added ${dotMatch[1] || "periwinkle"} marker to today.`;
-            }
-            // Help
-            if (lower === "help" || lower === "?") {
-                return "Try: 'today', 'tomorrow', 'next week', 'January', 'year view', 'note: meeting at 3pm', 'add dot red'";
-            }
-            return "I didn't understand that. Type 'help' for examples.";
-        }
-    }["OmniBar.useCallback[parseNaturalLanguage]"], [
-        onAction
+    }["OmniBar.useEffect"], [
+        selectedIndex
     ]);
-    const handleSubmit = (e)=>{
-        e.preventDefault();
-        if (!input.trim()) return;
-        // Add user message
-        const userMessage = {
-            id: `msg-${Date.now()}`,
-            role: "user",
-            content: input,
-            timestamp: new Date()
-        };
-        setMessages((prev)=>[
-                ...prev,
-                userMessage
-            ]);
-        setInput("");
-        // Simulate thinking
-        setIsThinking(true);
-        setTimeout(()=>{
-            const response = parseNaturalLanguage(input);
-            addAssistantMessage(response);
-            setIsThinking(false);
-        }, 300);
-    };
-    const handleSuggestionClick = (suggestion)=>{
-        suggestion.action();
-    };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
         children: [
-            isExpanded && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "fixed inset-0 bg-foreground/5 backdrop-blur-[2px] z-40",
-                onClick: ()=>setIsExpanded(false)
+            isOpen && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "fixed inset-0 bg-background/80 backdrop-blur-sm z-40",
+                onClick: ()=>setIsOpen(false)
             }, void 0, false, {
                 fileName: "[project]/components/omni-bar.tsx",
-                lineNumber: 287,
+                lineNumber: 344,
                 columnNumber: 9
             }, this),
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("fixed z-50 transition-all duration-300 ease-out", isExpanded ? "bottom-0 sm:bottom-8 left-0 sm:left-1/2 sm:-translate-x-1/2 w-full sm:max-w-lg" : "bottom-4 left-1/2 -translate-x-1/2"),
-                children: [
-                    !isExpanded && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                        type: "button",
-                        onClick: ()=>setIsExpanded(true),
-                        className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("flex items-center gap-2 px-4 py-2", "bg-card border border-border", "hover:bg-accent/50 transition-colors", "text-muted-foreground hover:text-foreground", "shadow-sm"),
-                        children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                className: "text-[10px] tracking-wider",
-                                children: "CMD+K"
-                            }, void 0, false, {
-                                fileName: "[project]/components/omni-bar.tsx",
-                                lineNumber: 315,
-                                columnNumber: 13
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                className: "text-[10px] text-muted-foreground/60",
-                                children: "|"
-                            }, void 0, false, {
-                                fileName: "[project]/components/omni-bar.tsx",
-                                lineNumber: 316,
-                                columnNumber: 13
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                className: "text-[10px]",
-                                children: "Ask anything..."
-                            }, void 0, false, {
-                                fileName: "[project]/components/omni-bar.tsx",
-                                lineNumber: 317,
-                                columnNumber: 13
-                            }, this)
-                        ]
-                    }, void 0, true, {
-                        fileName: "[project]/components/omni-bar.tsx",
-                        lineNumber: 304,
-                        columnNumber: 11
-                    }, this),
-                    isExpanded && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "bg-card border border-border shadow-lg flex flex-col overflow-hidden",
-                        children: [
-                            messages.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: "max-h-64 overflow-y-auto border-b border-border",
-                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "p-3 space-y-3",
-                                    children: [
-                                        messages.map((msg)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("text-[11px] leading-relaxed", msg.role === "user" ? "text-foreground" : "text-muted-foreground"),
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                        className: "text-[9px] uppercase tracking-wider text-muted-foreground/60 mr-2",
-                                                        children: msg.role === "user" ? "you" : "field"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/components/omni-bar.tsx",
-                                                        lineNumber: 338,
-                                                        columnNumber: 23
-                                                    }, this),
-                                                    msg.content
-                                                ]
-                                            }, msg.id, true, {
+            isOpen && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-md z-50",
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "bg-card border border-border rounded-lg shadow-2xl overflow-hidden",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "flex items-center gap-2 px-3 py-2 border-b border-border",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    className: "text-muted-foreground text-sm",
+                                    children: "⌘"
+                                }, void 0, false, {
+                                    fileName: "[project]/components/omni-bar.tsx",
+                                    lineNumber: 356,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                    ref: inputRef,
+                                    type: "text",
+                                    value: search,
+                                    onChange: (e)=>setSearch(e.target.value),
+                                    placeholder: "Type a command...",
+                                    className: "flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+                                }, void 0, false, {
+                                    fileName: "[project]/components/omni-bar.tsx",
+                                    lineNumber: 357,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("kbd", {
+                                    className: "text-[10px] text-muted-foreground/60 px-1.5 py-0.5 bg-muted rounded",
+                                    children: "ESC"
+                                }, void 0, false, {
+                                    fileName: "[project]/components/omni-bar.tsx",
+                                    lineNumber: 365,
+                                    columnNumber: 15
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/components/omni-bar.tsx",
+                            lineNumber: 355,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            ref: listRef,
+                            className: "max-h-80 overflow-y-auto py-1",
+                            children: [
+                                Object.entries(groupedCommands).map(([group, cmds])=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "px-3 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/60",
+                                                children: group
+                                            }, void 0, false, {
                                                 fileName: "[project]/components/omni-bar.tsx",
-                                                lineNumber: 329,
-                                                columnNumber: 21
-                                            }, this)),
-                                        isThinking && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                            className: "text-[11px] text-muted-foreground",
+                                                lineNumber: 374,
+                                                columnNumber: 19
+                                            }, this),
+                                            cmds.map((cmd)=>{
+                                                const globalIndex = filteredCommands.indexOf(cmd);
+                                                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                    type: "button",
+                                                    "data-index": globalIndex,
+                                                    onClick: ()=>cmd.action(),
+                                                    onMouseEnter: ()=>setSelectedIndex(globalIndex),
+                                                    className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("w-full flex items-center justify-between px-3 py-2 text-sm text-left transition-colors", globalIndex === selectedIndex ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-accent/50"),
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                            children: cmd.label
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/components/omni-bar.tsx",
+                                                            lineNumber: 393,
+                                                            columnNumber: 25
+                                                        }, this),
+                                                        cmd.shortcut && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("kbd", {
+                                                            className: "text-[10px] text-muted-foreground px-1.5 py-0.5 bg-muted rounded",
+                                                            children: cmd.shortcut
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/components/omni-bar.tsx",
+                                                            lineNumber: 395,
+                                                            columnNumber: 27
+                                                        }, this)
+                                                    ]
+                                                }, cmd.id, true, {
+                                                    fileName: "[project]/components/omni-bar.tsx",
+                                                    lineNumber: 380,
+                                                    columnNumber: 23
+                                                }, this);
+                                            })
+                                        ]
+                                    }, group, true, {
+                                        fileName: "[project]/components/omni-bar.tsx",
+                                        lineNumber: 373,
+                                        columnNumber: 17
+                                    }, this)),
+                                filteredCommands.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "px-3 py-6 text-center text-sm text-muted-foreground",
+                                    children: "No commands found"
+                                }, void 0, false, {
+                                    fileName: "[project]/components/omni-bar.tsx",
+                                    lineNumber: 405,
+                                    columnNumber: 17
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/components/omni-bar.tsx",
+                            lineNumber: 371,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "flex items-center justify-between px-3 py-2 border-t border-border bg-muted/30 text-[10px] text-muted-foreground",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "flex items-center gap-3",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                             children: [
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                    className: "text-[9px] uppercase tracking-wider text-muted-foreground/60 mr-2",
-                                                    children: "field"
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("kbd", {
+                                                    className: "px-1 py-0.5 bg-muted rounded mr-1",
+                                                    children: "↑↓"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/omni-bar.tsx",
-                                                    lineNumber: 346,
-                                                    columnNumber: 23
+                                                    lineNumber: 415,
+                                                    columnNumber: 19
                                                 }, this),
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                    className: "animate-pulse",
-                                                    children: "..."
-                                                }, void 0, false, {
-                                                    fileName: "[project]/components/omni-bar.tsx",
-                                                    lineNumber: 349,
-                                                    columnNumber: 23
-                                                }, this)
+                                                "navigate"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/omni-bar.tsx",
-                                            lineNumber: 345,
-                                            columnNumber: 21
+                                            lineNumber: 414,
+                                            columnNumber: 17
                                         }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                            ref: messagesEndRef
-                                        }, void 0, false, {
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("kbd", {
+                                                    className: "px-1 py-0.5 bg-muted rounded mr-1",
+                                                    children: "↵"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/components/omni-bar.tsx",
+                                                    lineNumber: 419,
+                                                    columnNumber: 19
+                                                }, this),
+                                                "select"
+                                            ]
+                                        }, void 0, true, {
                                             fileName: "[project]/components/omni-bar.tsx",
-                                            lineNumber: 352,
-                                            columnNumber: 19
+                                            lineNumber: 418,
+                                            columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/omni-bar.tsx",
-                                    lineNumber: 327,
-                                    columnNumber: 17
-                                }, this)
-                            }, void 0, false, {
-                                fileName: "[project]/components/omni-bar.tsx",
-                                lineNumber: 326,
-                                columnNumber: 15
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
-                                onSubmit: handleSubmit,
-                                className: "p-3 sm:p-3",
-                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "flex items-center gap-2",
+                                    lineNumber: 413,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                     children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                            className: "text-muted-foreground/60 text-[10px]",
-                                            children: ">"
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("kbd", {
+                                            className: "px-1 py-0.5 bg-muted rounded mr-1",
+                                            children: "⌘K"
                                         }, void 0, false, {
                                             fileName: "[project]/components/omni-bar.tsx",
-                                            lineNumber: 360,
+                                            lineNumber: 424,
                                             columnNumber: 17
                                         }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                            ref: inputRef,
-                                            type: "text",
-                                            value: input,
-                                            onChange: (e)=>setInput(e.target.value),
-                                            placeholder: "Type a command or ask something...",
-                                            className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("flex-1 bg-transparent text-sm sm:text-[11px] text-foreground", "placeholder:text-muted-foreground/50", "outline-none py-1")
-                                        }, void 0, false, {
-                                            fileName: "[project]/components/omni-bar.tsx",
-                                            lineNumber: 361,
-                                            columnNumber: 17
-                                        }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                            className: "text-[9px] text-muted-foreground/40 hidden sm:block",
-                                            children: "ESC"
-                                        }, void 0, false, {
-                                            fileName: "[project]/components/omni-bar.tsx",
-                                            lineNumber: 373,
-                                            columnNumber: 17
-                                        }, this)
+                                        "open"
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/omni-bar.tsx",
-                                    lineNumber: 359,
+                                    lineNumber: 423,
                                     columnNumber: 15
                                 }, this)
-                            }, void 0, false, {
-                                fileName: "[project]/components/omni-bar.tsx",
-                                lineNumber: 358,
-                                columnNumber: 13
-                            }, this),
-                            messages.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: "p-3 pt-0 border-t border-border",
-                                children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        className: "text-[9px] uppercase tracking-wider text-muted-foreground/50 mb-2",
-                                        children: "Quick actions"
-                                    }, void 0, false, {
-                                        fileName: "[project]/components/omni-bar.tsx",
-                                        lineNumber: 380,
-                                        columnNumber: 17
-                                    }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        className: "grid grid-cols-2 gap-1",
-                                        children: suggestions.map((suggestion)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                                type: "button",
-                                                onClick: ()=>handleSuggestionClick(suggestion),
-                                                className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("flex items-center gap-2 p-2 text-left", "hover:bg-accent/30 transition-colors", "border border-transparent hover:border-border"),
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                        className: "w-5 h-5 flex items-center justify-center bg-muted text-[10px] text-muted-foreground",
-                                                        children: suggestion.icon
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/components/omni-bar.tsx",
-                                                        lineNumber: 395,
-                                                        columnNumber: 23
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                        className: "flex-1 min-w-0",
-                                                        children: [
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                                className: "text-[10px] text-foreground truncate",
-                                                                children: suggestion.label
-                                                            }, void 0, false, {
-                                                                fileName: "[project]/components/omni-bar.tsx",
-                                                                lineNumber: 399,
-                                                                columnNumber: 25
-                                                            }, this),
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                                className: "text-[9px] text-muted-foreground/60 truncate",
-                                                                children: suggestion.description
-                                                            }, void 0, false, {
-                                                                fileName: "[project]/components/omni-bar.tsx",
-                                                                lineNumber: 402,
-                                                                columnNumber: 25
-                                                            }, this)
-                                                        ]
-                                                    }, void 0, true, {
-                                                        fileName: "[project]/components/omni-bar.tsx",
-                                                        lineNumber: 398,
-                                                        columnNumber: 23
-                                                    }, this)
-                                                ]
-                                            }, suggestion.id, true, {
-                                                fileName: "[project]/components/omni-bar.tsx",
-                                                lineNumber: 385,
-                                                columnNumber: 21
-                                            }, this))
-                                    }, void 0, false, {
-                                        fileName: "[project]/components/omni-bar.tsx",
-                                        lineNumber: 383,
-                                        columnNumber: 17
-                                    }, this)
-                                ]
-                            }, void 0, true, {
-                                fileName: "[project]/components/omni-bar.tsx",
-                                lineNumber: 379,
-                                columnNumber: 15
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: "px-3 py-2 border-t border-border bg-muted/30",
-                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "text-[9px] text-muted-foreground/50 text-center",
-                                    children: 'Try: "today" "next week" "January" "note: dentist at 2pm" "help"'
-                                }, void 0, false, {
-                                    fileName: "[project]/components/omni-bar.tsx",
-                                    lineNumber: 414,
-                                    columnNumber: 15
-                                }, this)
-                            }, void 0, false, {
-                                fileName: "[project]/components/omni-bar.tsx",
-                                lineNumber: 413,
-                                columnNumber: 13
-                            }, this)
-                        ]
-                    }, void 0, true, {
-                        fileName: "[project]/components/omni-bar.tsx",
-                        lineNumber: 323,
-                        columnNumber: 11
-                    }, this)
-                ]
-            }, void 0, true, {
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/components/omni-bar.tsx",
+                            lineNumber: 412,
+                            columnNumber: 13
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/components/omni-bar.tsx",
+                    lineNumber: 353,
+                    columnNumber: 11
+                }, this)
+            }, void 0, false, {
                 fileName: "[project]/components/omni-bar.tsx",
-                lineNumber: 294,
+                lineNumber: 352,
+                columnNumber: 9
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "fixed bottom-4 left-1/2 -translate-x-1/2 z-30",
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                    type: "button",
+                    onClick: ()=>setIsOpen(true),
+                    className: "flex items-center gap-2 px-3 py-1.5 bg-card border border-border rounded-md shadow-sm text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("kbd", {
+                            className: "text-[10px] px-1.5 py-0.5 bg-muted rounded",
+                            children: "⌘K"
+                        }, void 0, false, {
+                            fileName: "[project]/components/omni-bar.tsx",
+                            lineNumber: 439,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                            className: "text-xs",
+                            children: "Commands"
+                        }, void 0, false, {
+                            fileName: "[project]/components/omni-bar.tsx",
+                            lineNumber: 440,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/components/omni-bar.tsx",
+                    lineNumber: 434,
+                    columnNumber: 9
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/components/omni-bar.tsx",
+                lineNumber: 433,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true);
 }
-_s(OmniBar, "NlGZ5EB06Pb0esOxL/LMit+4bCM=");
+_s(OmniBar, "4rBNi/qQ5OxDcrnSRhy5ftMnCf4=");
 _c = OmniBar;
 var _c;
 __turbopack_context__.k.register(_c, "OmniBar");
@@ -5290,11 +5774,10 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 const STORAGE_KEY = "field-memo-data";
+const MAX_UNDO_HISTORY = 50;
 // Default dot color for legacy compatibility (dots are being phased out in favor of time blocks)
 const DEFAULT_DOT_COLOR = 1;
 function loadData() {
-    if ("TURBOPACK compile-time falsy", 0) //TURBOPACK unreachable
-    ;
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
         return stored ? JSON.parse(stored) : {};
@@ -5303,8 +5786,6 @@ function loadData() {
     }
 }
 function saveData(data) {
-    if ("TURBOPACK compile-time falsy", 0) //TURBOPACK unreachable
-    ;
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch  {
@@ -5324,28 +5805,100 @@ function YearCalendar() {
     const [day, setDay] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({
         "YearCalendar.useState": ()=>today.getDate()
     }["YearCalendar.useState"]);
-    const [data, setData] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({
-        "YearCalendar.useState": ()=>loadData()
-    }["YearCalendar.useState"]);
+    // Initialize with empty data to match server render, then load from localStorage after mount
+    const [data, setData] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({});
+    const [mounted, setMounted] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    // Undo/Redo history
+    const [undoStack, setUndoStack] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
+    const [redoStack, setRedoStack] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
+    // Load data from localStorage after mount to avoid hydration mismatch
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "YearCalendar.useEffect": ()=>{
+            setData(loadData());
+            setMounted(true);
+        }
+    }["YearCalendar.useEffect"], []);
+    // Helper to update data with undo tracking
+    const updateDataWithUndo = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "YearCalendar.useCallback[updateDataWithUndo]": (newData)=>{
+            setUndoStack({
+                "YearCalendar.useCallback[updateDataWithUndo]": (prev)=>{
+                    const newStack = [
+                        ...prev,
+                        data
+                    ];
+                    // Limit history size
+                    if (newStack.length > MAX_UNDO_HISTORY) {
+                        return newStack.slice(-MAX_UNDO_HISTORY);
+                    }
+                    return newStack;
+                }
+            }["YearCalendar.useCallback[updateDataWithUndo]"]);
+            setRedoStack([]); // Clear redo stack on new change
+            setData(newData);
+            saveData(newData);
+        }
+    }["YearCalendar.useCallback[updateDataWithUndo]"], [
+        data
+    ]);
+    // Undo function
+    const undo = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "YearCalendar.useCallback[undo]": ()=>{
+            if (undoStack.length === 0) return;
+            const previousData = undoStack[undoStack.length - 1];
+            setRedoStack({
+                "YearCalendar.useCallback[undo]": (prev)=>[
+                        ...prev,
+                        data
+                    ]
+            }["YearCalendar.useCallback[undo]"]);
+            setUndoStack({
+                "YearCalendar.useCallback[undo]": (prev)=>prev.slice(0, -1)
+            }["YearCalendar.useCallback[undo]"]);
+            setData(previousData);
+            saveData(previousData);
+        }
+    }["YearCalendar.useCallback[undo]"], [
+        undoStack,
+        data
+    ]);
+    // Redo function
+    const redo = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "YearCalendar.useCallback[redo]": ()=>{
+            if (redoStack.length === 0) return;
+            const nextData = redoStack[redoStack.length - 1];
+            setUndoStack({
+                "YearCalendar.useCallback[redo]": (prev)=>[
+                        ...prev,
+                        data
+                    ]
+            }["YearCalendar.useCallback[redo]"]);
+            setRedoStack({
+                "YearCalendar.useCallback[redo]": (prev)=>prev.slice(0, -1)
+            }["YearCalendar.useCallback[redo]"]);
+            setData(nextData);
+            saveData(nextData);
+        }
+    }["YearCalendar.useCallback[redo]"], [
+        redoStack,
+        data
+    ]);
     const handleDayUpdate = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
         "YearCalendar.useCallback[handleDayUpdate]": (month, day, dayData)=>{
-            setData({
-                "YearCalendar.useCallback[handleDayUpdate]": (prev)=>{
-                    const monthKey = `${year}-${month}`;
-                    const newData = {
-                        ...prev,
-                        [monthKey]: {
-                            ...prev[monthKey],
-                            [`${day}`]: dayData
-                        }
-                    };
-                    saveData(newData);
-                    return newData;
+            const monthKey = `${year}-${month}`;
+            const newData = {
+                ...data,
+                [monthKey]: {
+                    ...data[monthKey],
+                    [`${day}`]: dayData
                 }
-            }["YearCalendar.useCallback[handleDayUpdate]"]);
+            };
+            updateDataWithUndo(newData);
         }
     }["YearCalendar.useCallback[handleDayUpdate]"], [
-        year
+        year,
+        data,
+        updateDataWithUndo
     ]);
     const months = Array.from({
         length: 12
@@ -5428,20 +5981,30 @@ function YearCalendar() {
             dots: []
         };
     };
-    const handleUpdate = (y, m, d, dayData)=>{
-        setData((prev)=>{
+    // Get all blocks for a date (including recurring blocks from other days)
+    const getBlocksForDateFn = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "YearCalendar.useCallback[getBlocksForDateFn]": (targetDate)=>{
+            return (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$calendar$2d$types$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getBlocksForDate"])(targetDate, data);
+        }
+    }["YearCalendar.useCallback[getBlocksForDateFn]"], [
+        data
+    ]);
+    const handleUpdate = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "YearCalendar.useCallback[handleUpdate]": (y, m, d, dayData)=>{
             const monthKey = `${y}-${m}`;
             const newData = {
-                ...prev,
+                ...data,
                 [monthKey]: {
-                    ...prev[monthKey],
+                    ...data[monthKey],
                     [`${d}`]: dayData
                 }
             };
-            saveData(newData);
-            return newData;
-        });
-    };
+            updateDataWithUndo(newData);
+        }
+    }["YearCalendar.useCallback[handleUpdate]"], [
+        data,
+        updateDataWithUndo
+    ]);
     const handleDayClick = (date)=>{
         setYear(date.getFullYear());
         setMonth(date.getMonth());
@@ -5493,32 +6056,37 @@ function YearCalendar() {
                         if (!dots.includes(action.payload.dotColor)) {
                             dots.push(action.payload.dotColor);
                         }
-                        setData({
-                            "YearCalendar.useCallback[handleOmniAction]": (prev)=>{
-                                const monthKey = `${y}-${m}`;
-                                const newData = {
-                                    ...prev,
-                                    [monthKey]: {
-                                        ...prev[monthKey],
-                                        [`${dayNum}`]: {
-                                            ...existing,
-                                            dots
-                                        }
-                                    }
-                                };
-                                saveData(newData);
-                                return newData;
-                            }
-                        }["YearCalendar.useCallback[handleOmniAction]"]);
+                        handleUpdate(y, m, dayNum, {
+                            ...existing,
+                            dots
+                        });
                     }
+                    break;
+                case "undo":
+                    undo();
+                    break;
+                case "redo":
+                    redo();
+                    break;
+                case "toggle_theme":
+                    // Toggle the theme by clicking the theme toggle button
+                    document.querySelector('[data-theme-toggle]')?.click();
+                    break;
+                case "new_event":
+                    // Navigate to today in day view for easy event creation
+                    const eventDate = action.payload.date || new Date();
+                    setYear(eventDate.getFullYear());
+                    setMonth(eventDate.getMonth());
+                    setDay(eventDate.getDate());
+                    setViewMode("day");
                     break;
             }
         }
     }["YearCalendar.useCallback[handleOmniAction]"], [
-        year,
-        month,
-        day,
-        setData
+        getData,
+        handleUpdate,
+        undo,
+        redo
     ]);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "h-screen w-screen flex flex-col overflow-hidden bg-background",
@@ -5540,13 +6108,13 @@ function YearCalendar() {
                                             children: "(CAL)"
                                         }, void 0, false, {
                                             fileName: "[project]/components/year-calendar.tsx",
-                                            lineNumber: 244,
+                                            lineNumber: 300,
                                             columnNumber: 21
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/year-calendar.tsx",
-                                    lineNumber: 243,
+                                    lineNumber: 299,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$view$2d$switcher$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["ViewSwitcher"], {
@@ -5554,7 +6122,7 @@ function YearCalendar() {
                                     onViewChange: setViewMode
                                 }, void 0, false, {
                                     fileName: "[project]/components/year-calendar.tsx",
-                                    lineNumber: 247,
+                                    lineNumber: 303,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5569,12 +6137,12 @@ function YearCalendar() {
                                                 children: "←"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/year-calendar.tsx",
-                                                lineNumber: 255,
+                                                lineNumber: 311,
                                                 columnNumber: 17
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/components/year-calendar.tsx",
-                                            lineNumber: 250,
+                                            lineNumber: 306,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -5584,7 +6152,7 @@ function YearCalendar() {
                                             children: getDateLabel()
                                         }, void 0, false, {
                                             fileName: "[project]/components/year-calendar.tsx",
-                                            lineNumber: 257,
+                                            lineNumber: 313,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -5596,24 +6164,24 @@ function YearCalendar() {
                                                 children: "→"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/year-calendar.tsx",
-                                                lineNumber: 269,
+                                                lineNumber: 325,
                                                 columnNumber: 17
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/components/year-calendar.tsx",
-                                            lineNumber: 264,
+                                            lineNumber: 320,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/year-calendar.tsx",
-                                    lineNumber: 249,
+                                    lineNumber: 305,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/year-calendar.tsx",
-                            lineNumber: 242,
+                            lineNumber: 298,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5621,39 +6189,39 @@ function YearCalendar() {
                             children: [
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                     className: "text-[8px] text-muted-foreground hidden lg:block",
-                                    children: "Click to open day"
+                                    children: "Click to add · Double-click for day view"
                                 }, void 0, false, {
                                     fileName: "[project]/components/year-calendar.tsx",
-                                    lineNumber: 275,
+                                    lineNumber: 331,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$theme$2d$toggle$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["ThemeToggle"], {}, void 0, false, {
                                     fileName: "[project]/components/year-calendar.tsx",
-                                    lineNumber: 278,
+                                    lineNumber: 334,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/year-calendar.tsx",
-                            lineNumber: 274,
+                            lineNumber: 330,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/year-calendar.tsx",
-                    lineNumber: 241,
+                    lineNumber: 297,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/components/year-calendar.tsx",
-                lineNumber: 240,
+                lineNumber: 296,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
                 className: "flex-1 min-h-0 overflow-hidden",
                 children: [
                     viewMode === "year" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "h-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 border-l border-t border-border overflow-y-auto",
+                        className: "h-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 overflow-y-auto",
                         children: months.map((m)=>{
                             const monthKey = `${year}-${m}`;
                             const monthData = data[monthKey] || {};
@@ -5663,16 +6231,17 @@ function YearCalendar() {
                                 data: monthData,
                                 onDayUpdate: (d, dayData)=>handleDayUpdate(m, d, dayData),
                                 selectedDotColor: DEFAULT_DOT_COLOR,
-                                onDayClick: (d)=>handleDayClick(new Date(year, m, d))
+                                onDayClick: (d)=>handleDayClick(new Date(year, m, d)),
+                                getBlocksForDate: getBlocksForDateFn
                             }, m, false, {
                                 fileName: "[project]/components/year-calendar.tsx",
-                                lineNumber: 292,
+                                lineNumber: 348,
                                 columnNumber: 17
                             }, this);
                         })
                     }, void 0, false, {
                         fileName: "[project]/components/year-calendar.tsx",
-                        lineNumber: 286,
+                        lineNumber: 342,
                         columnNumber: 11
                     }, this),
                     viewMode === "month" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$month$2d$view$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["MonthView"], {
@@ -5681,10 +6250,11 @@ function YearCalendar() {
                         data: data,
                         onDayUpdate: handleDayUpdate,
                         selectedDotColor: DEFAULT_DOT_COLOR,
-                        onDayClick: (d)=>handleDayClick(new Date(year, month, d))
+                        onDayClick: (d)=>handleDayClick(new Date(year, month, d)),
+                        getBlocksForDate: getBlocksForDateFn
                     }, void 0, false, {
                         fileName: "[project]/components/year-calendar.tsx",
-                        lineNumber: 307,
+                        lineNumber: 364,
                         columnNumber: 11
                     }, this),
                     viewMode === "week" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$week$2d$view$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["WeekView"], {
@@ -5692,10 +6262,11 @@ function YearCalendar() {
                         getData: getData,
                         onUpdate: handleUpdate,
                         selectedDotColor: DEFAULT_DOT_COLOR,
-                        onDayClick: handleDayClick
+                        onDayClick: handleDayClick,
+                        getBlocksForDate: getBlocksForDateFn
                     }, void 0, false, {
                         fileName: "[project]/components/year-calendar.tsx",
-                        lineNumber: 318,
+                        lineNumber: 376,
                         columnNumber: 11
                     }, this),
                     viewMode === "day" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$day$2d$view$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DayView"], {
@@ -5704,30 +6275,32 @@ function YearCalendar() {
                         onUpdate: (dayData)=>handleUpdate(year, month, day, dayData)
                     }, void 0, false, {
                         fileName: "[project]/components/year-calendar.tsx",
-                        lineNumber: 328,
+                        lineNumber: 387,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/year-calendar.tsx",
-                lineNumber: 284,
+                lineNumber: 340,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$omni$2d$bar$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["OmniBar"], {
-                onAction: handleOmniAction
+                onAction: handleOmniAction,
+                canUndo: undoStack.length > 0,
+                canRedo: redoStack.length > 0
             }, void 0, false, {
                 fileName: "[project]/components/year-calendar.tsx",
-                lineNumber: 337,
+                lineNumber: 396,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/year-calendar.tsx",
-        lineNumber: 238,
+        lineNumber: 294,
         columnNumber: 5
     }, this);
 }
-_s(YearCalendar, "zZdEUKipY4p2WVtJp2Pyfz3Px6Y=");
+_s(YearCalendar, "sN2vwUmAyqRA1cSpASlT8fHQUBg=");
 _c = YearCalendar;
 var _c;
 __turbopack_context__.k.register(_c, "YearCalendar");

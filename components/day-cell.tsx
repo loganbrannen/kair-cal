@@ -3,7 +3,7 @@
 import React from "react";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { type DayData, type DotColor, DOT_COLORS, BLOCK_CATEGORIES, DAY_COLORS, type DayColorCode, MONTH_NAMES_SHORT } from "./calendar-types";
+import { type DayData, type DotColor, type TimeBlock, DOT_COLORS, BLOCK_CATEGORIES, DAY_COLORS, type DayColorCode, MONTH_NAMES_SHORT } from "./calendar-types";
 import { DayColorPicker } from "./day-color-picker";
 import { QuickAddPopover } from "./quick-add-popover";
 
@@ -14,6 +14,7 @@ interface DayCellProps {
   month: number;
   year: number;
   data: DayData;
+  allBlocks?: TimeBlock[]; // All blocks including recurring
   isToday: boolean;
   onUpdate: (data: DayData) => void;
   selectedDotColor: DotColor;
@@ -25,6 +26,7 @@ export function DayCell({
   month,
   year,
   data,
+  allBlocks,
   isToday,
   onUpdate,
   selectedDotColor,
@@ -87,17 +89,26 @@ export function DayCell({
     setColorPickerPos(null);
   };
 
-  // Get unique time block categories for this day
-  const blockCategories = data.timeBlocks
-    ? [...new Set(data.timeBlocks.map((b) => b.category))]
+  // Get unique time block categories for this day (use allBlocks which includes recurring)
+  const blocks = allBlocks || data.timeBlocks || [];
+  const blockCategories = blocks.length > 0
+    ? [...new Set(blocks.map((b) => b.category))]
     : [];
 
   // Get day color info if set
   const dayColorInfo = data.dayColor ? DAY_COLORS[data.dayColor] : null;
 
+  // Double-click navigates to day view
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDayClick?.();
+  };
+
   const cellContent = (
     <div
       onClick={handleShiftClick}
+      onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
       className={cn(
         "relative border-r border-b border-border p-0.5 cursor-pointer min-h-0 overflow-hidden h-full",
