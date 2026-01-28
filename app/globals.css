@@ -1,0 +1,146 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Notebook paper palette - subtle blue grid lines */
+  --background: oklch(0.985 0.002 250);
+  --foreground: oklch(0.25 0.02 250);
+  --card: oklch(0.99 0.001 250);
+  --card-foreground: oklch(0.25 0.02 250);
+  --popover: oklch(0.99 0.001 250);
+  --popover-foreground: oklch(0.25 0.02 250);
+  --primary: oklch(0.35 0.02 250);
+  --primary-foreground: oklch(0.99 0.001 250);
+  --secondary: oklch(0.95 0.01 250);
+  --secondary-foreground: oklch(0.35 0.02 250);
+  --muted: oklch(0.96 0.008 250);
+  --muted-foreground: oklch(0.55 0.02 250);
+  --accent: oklch(0.93 0.015 250);
+  --accent-foreground: oklch(0.35 0.02 250);
+  --destructive: oklch(0.55 0.15 25);
+  --destructive-foreground: oklch(0.99 0.001 250);
+  /* Subtle blue grid line color */
+  --border: oklch(0.85 0.04 250);
+  --input: oklch(0.92 0.015 250);
+  --ring: oklch(0.60 0.06 250);
+  
+  /* Color palette from user's image - 7 colors */
+  --dot-1: oklch(0.62 0.08 270);  /* Muted periwinkle/lavender */
+  --dot-2: oklch(0.90 0.08 95);   /* Soft cream/butter yellow */
+  --dot-3: oklch(0.72 0.08 160);  /* Sage/seafoam green */
+  --dot-4: oklch(0.78 0.05 75);   /* Warm beige/sand - Rest */
+  --dot-5: oklch(0.65 0.25 330);  /* Bright magenta/pink */
+  --dot-6: oklch(0.60 0.15 45);   /* Terracotta/coral orange */
+  --dot-7: oklch(0.82 0.06 240);  /* Light sky blue - Review */
+  
+  --radius: 0;
+  --sidebar: oklch(0.98 0.002 250);
+  --sidebar-foreground: oklch(0.25 0.02 250);
+  --sidebar-primary: oklch(0.35 0.02 250);
+  --sidebar-primary-foreground: oklch(0.99 0.001 250);
+  --sidebar-accent: oklch(0.93 0.015 250);
+  --sidebar-accent-foreground: oklch(0.35 0.02 250);
+  --sidebar-border: oklch(0.85 0.04 250);
+  --sidebar-ring: oklch(0.60 0.06 250);
+}
+
+.dark {
+  /* Dark mode - deep blue-gray paper */
+  --background: oklch(0.18 0.015 250);
+  --foreground: oklch(0.92 0.01 250);
+  --card: oklch(0.20 0.015 250);
+  --card-foreground: oklch(0.92 0.01 250);
+  --popover: oklch(0.22 0.015 250);
+  --popover-foreground: oklch(0.92 0.01 250);
+  --primary: oklch(0.92 0.01 250);
+  --primary-foreground: oklch(0.18 0.015 250);
+  --secondary: oklch(0.25 0.015 250);
+  --secondary-foreground: oklch(0.85 0.01 250);
+  --muted: oklch(0.22 0.012 250);
+  --muted-foreground: oklch(0.60 0.02 250);
+  --accent: oklch(0.28 0.02 250);
+  --accent-foreground: oklch(0.92 0.01 250);
+  --destructive: oklch(0.55 0.15 25);
+  --destructive-foreground: oklch(0.92 0.01 250);
+  /* Subtle blue grid line color - lighter for dark mode */
+  --border: oklch(0.32 0.03 250);
+  --input: oklch(0.25 0.015 250);
+  --ring: oklch(0.55 0.06 250);
+  
+  /* Slightly adjusted dot colors for dark mode visibility */
+  --dot-1: oklch(0.65 0.10 270);
+  --dot-2: oklch(0.85 0.10 95);
+  --dot-3: oklch(0.68 0.10 160);
+  --dot-4: oklch(0.72 0.07 75);
+  --dot-5: oklch(0.68 0.25 330);
+  --dot-6: oklch(0.65 0.18 45);
+  --dot-7: oklch(0.78 0.08 240);
+  
+  --sidebar: oklch(0.16 0.015 250);
+  --sidebar-foreground: oklch(0.92 0.01 250);
+  --sidebar-primary: oklch(0.92 0.01 250);
+  --sidebar-primary-foreground: oklch(0.18 0.015 250);
+  --sidebar-accent: oklch(0.28 0.02 250);
+  --sidebar-accent-foreground: oklch(0.92 0.01 250);
+  --sidebar-border: oklch(0.32 0.03 250);
+  --sidebar-ring: oklch(0.55 0.06 250);
+}
+
+@theme inline {
+  --font-sans: 'IBM Plex Mono', 'Geist Mono Fallback';
+  --font-mono: 'IBM Plex Mono', 'Geist Mono Fallback';
+  --color-dot-1: var(--dot-1);
+  --color-dot-2: var(--dot-2);
+  --color-dot-3: var(--dot-3);
+  --color-dot-4: var(--dot-4);
+  --color-dot-5: var(--dot-5);
+  --color-dot-6: var(--dot-6);
+  --color-dot-7: var(--dot-7);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

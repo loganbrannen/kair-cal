@@ -1,0 +1,889 @@
+[00:00:01.522] Server  LOG     
+[00:00:01.522] Server  LOG        We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
+[00:00:01.523] Server  LOG        The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
+
+[00:00:01.523] Server  LOG        	- include was updated to add '.next/dev/types/**/*.ts'
+[00:00:01.523] Server  LOG     
+[00:00:01.523] Server  LOG        The following mandatory changes were made to your tsconfig.json:
+
+[00:00:01.523] Server  LOG        	- jsx was set to react-jsx (next.js uses the React automatic runtime)
+[00:00:01.523] Server  LOG     
+[00:00:01.585] Server  LOG      ✓ Ready in 1407ms
+[00:00:02.941] Server  ERROR    ⨯ ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+
+[00:00:03.485] Browser ERROR   uncaughtError: Error: ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+
+[00:00:03.633] Browser ERROR   ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:00:03.782] Server  ERROR    ⨯ ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+
+[00:00:03.862] Browser ERROR   uncaughtError: Error: ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+
+[00:00:03.999] Browser ERROR   ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:00:03.999] Browser ERROR   ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:00:04.178] Server  ERROR    ⨯ ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+
+[00:00:04.234] Browser ERROR   uncaughtError: Error: ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+
+[00:00:04.369] Browser ERROR   ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:00:04.369] Browser ERROR   ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:00:18.343] Server  ERROR    ⨯ ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+
+[00:00:18.456] Browser ERROR   uncaughtError: Error: ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+
+[00:00:18.499] Browser ERROR   ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:00:18.503] Server  ERROR    ⨯ ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+
+[00:00:18.544] Browser ERROR   uncaughtError: Error: ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+
+[00:00:18.681] Browser ERROR   ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:00:18.681] Browser ERROR   ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:00:19.669] Browser ERROR   ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:00:19.669] Browser ERROR   ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:00:19.669] Browser ERROR   ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:00:19.669] Browser ERROR   ./components/day-cell.tsx:171:5
+Parsing ecmascript source code failed
+  169 |       ) : null}
+  170 |     </div>
+> 171 |     {colorPickerPos && (
+      |     ^
+  172 |       <DayColorPicker
+  173 |         currentColor={data.dayColor ?? null}
+  174 |         onColorChange={handleColorChange}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:01:37.967] Browser ERROR   ./components/day-cell.tsx:182:1
+Parsing ecmascript source code failed
+  180 |     )}
+  181 |   );
+> 182 | }
+      | ^
+  183 |
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:01:38.670] Browser ERROR   ./components/day-cell.tsx:182:1
+Parsing ecmascript source code failed
+  180 |     )}
+  181 |   );
+> 182 | }
+      | ^
+  183 |
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+
+Import traces:
+  Client Component Browser:
+    ./components/day-cell.tsx [Client Component Browser]
+    ./components/month-grid.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Client Component Browser]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/day-cell.tsx [Client Component SSR]
+    ./components/month-grid.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Client Component SSR]
+    ./components/year-calendar.tsx [Server Component]
+    ./app/page.tsx [Server Component]
+[00:01:41.698] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:01:41.714] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:01:42.099] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:01:42.099] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:01:42.099] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769568440853}
+[00:01:42.671] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:01:42.671] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:01:42.671] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769568440853}
+[00:21:39.705] Server  LOG      ✓ Compiled in 69ms
+[00:22:05.720] Server  LOG      ✓ Compiled in 45ms
+[00:22:06.670] Browser ERROR   uncaughtError: ReferenceError: handleCellClick is not defined
+[00:22:20.535] Server  LOG      ✓ Compiled in 154ms
+[00:22:20.565] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:22:21.035] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:22:21.670] Browser ERROR   uncaughtError: Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <Popper __scopePopper={{Popper:[...]}}>
+      <PopperProvider scope={{Popper:[...]}} anchor={null} onAnchorChange={function bound dispatchSetState}>
+        <PopoverProvider scope={undefined} contentId="radix-_R_e..." triggerRef={{current:null}} open={false} ...>
+          <PopoverTrigger asChild={true}>
+            <PopoverTrigger data-slot="popover-tr..." asChild={true}>
+              <PopperAnchor asChild={true} __scopePopper={{Popper:[...]}}>
+                <Primitive.div asChild={true} ref={function}>
+                  <Slot ref={function}>
+                    <SlotClone ref={function}>
+                      <Primitive.button type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                        <Slot type="button" aria-haspopup="dialog" aria-expanded={false} aria-controls="radix-_R_e..." ...>
+                          <SlotClone type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                            <div onClick={function} onContextMenu={function handleContextMenu} className="relative b..." ...>
+                              <span>
++                             <div className="absolute bottom-0 left-0 right-0 flex h-1">
+          ...
+
+[00:22:21.670] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:22:21.670] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:22:21.670] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:22:21.670] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569680380}
+[00:22:21.670] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569680381}
+[00:22:31.934] Server  LOG      ✓ Compiled in 56ms
+[00:22:53.251] Server  LOG      ✓ Compiled in 36ms
+[00:23:03.499] Server  LOG      ✓ Compiled in 35ms
+[00:23:28.364] Server  LOG      ✓ Compiled in 48ms
+[00:23:40.329] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:23:41.669] Browser ERROR   uncaughtError: Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <Popper __scopePopper={{Popper:[...]}}>
+      <PopperProvider scope={{Popper:[...]}} anchor={null} onAnchorChange={function bound dispatchSetState}>
+        <PopoverProvider scope={undefined} contentId="radix-_R_e..." triggerRef={{current:null}} open={false} ...>
+          <PopoverTrigger asChild={true}>
+            <PopoverTrigger data-slot="popover-tr..." asChild={true}>
+              <PopperAnchor asChild={true} __scopePopper={{Popper:[...]}}>
+                <Primitive.div asChild={true} ref={function}>
+                  <Slot ref={function}>
+                    <SlotClone ref={function}>
+                      <Primitive.button type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                        <Slot type="button" aria-haspopup="dialog" aria-expanded={false} aria-controls="radix-_R_e..." ...>
+                          <SlotClone type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                            <div onClick={function} onContextMenu={function handleContextMenu} className="relative b..." ...>
+                              <span>
++                             <div className="absolute bottom-0 left-0 right-0 flex h-1">
+          ...
+
+[00:23:41.669] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:23:41.669] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:23:41.669] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:23:41.669] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569759623}
+[00:23:41.669] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569759623}
+[00:24:29.939] Server  LOG      ✓ Compiled in 37ms
+[00:24:43.850] Server  LOG      ✓ Compiled in 40ms
+[00:24:52.092] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:24:52.669] Browser ERROR   uncaughtError: Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{lazyData:null, ...}} segmentPath={[...]} ...>
+      <SegmentViewNode type="page" pagePath="page.tsx">
+        <SegmentTrieNode>
+        <Home>
+          <YearCalendar>
+            <div className="h-screen w...">
+              <header>
+              <main className="flex-1 min...">
+                <div className="h-full gri...">
+                  <MonthGrid month={0} year={2026} data={{...}} onDayUpdate={function onDayUpdate} selectedDotColor={1} ...>
+                    <div className="flex flex-...">
+                      <div>
+                      <div className="flex-1 gri..." style={{...}}>
+                        <div>
+                        <div>
+                        <div>
+                        <div>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell day={27} month={0} year={2026} data={{note:"",dots:[...], ...}} isToday={true} ...>
+                          <QuickAddPopover date={Date} data={{note:"",dots:[...], ...}} onUpdate={function onUpdate} ...>
+                            <div onClick={function handleShiftClick} onContextMenu={function handleContextMenu} ...>
+                              <span>
++                             <div className="absolute bottom-0 left-0 right-0 flex h-1">
+                        ...
+                        ...
+                  ...
+              ...
+      ...
+
+[00:24:52.670] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:24:52.670] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:24:52.670] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:24:52.670] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569831171}
+[00:24:52.670] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569831171}
+[00:26:54.055] Server  LOG      ✓ Compiled in 63ms
+[00:27:02.904] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:27:03.670] Browser ERROR   uncaughtError: Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{lazyData:null, ...}} segmentPath={[...]} ...>
+      <SegmentViewNode type="page" pagePath="page.tsx">
+        <SegmentTrieNode>
+        <Home>
+          <YearCalendar>
+            <div className="h-screen w...">
+              <header>
+              <main className="flex-1 min...">
+                <div className="h-full gri...">
+                  <MonthGrid month={0} year={2026} data={{...}} onDayUpdate={function onDayUpdate} selectedDotColor={1} ...>
+                    <div className="flex flex-...">
+                      <div>
+                      <div className="flex-1 gri..." style={{...}}>
+                        <div>
+                        <div>
+                        <div>
+                        <div>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell>
+                        <DayCell day={27} month={0} year={2026} data={{note:"",dots:[...], ...}} isToday={true} ...>
+                          <QuickAddPopover date={Date} data={{note:"",dots:[...], ...}} onUpdate={function onUpdate} ...>
+                            <div onClick={function handleShiftClick} onContextMenu={function handleContextMenu} ...>
+                              <span>
++                             <div className="absolute bottom-0 left-0 right-0 flex h-1">
+                        ...
+                        ...
+                  ...
+              ...
+      ...
+
+[00:27:03.670] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:27:03.670] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:27:03.670] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:27:03.670] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569961959}
+[00:27:03.670] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769569961959}
