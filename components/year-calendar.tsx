@@ -8,6 +8,9 @@ import { DayView } from "./day-view";
 import { ViewSwitcher } from "./view-switcher";
 import { ThemeToggle } from "./theme-toggle";
 import { OmniBar, type CalendarAction } from "./omni-bar";
+import { useSekkiMode } from "./sekki-context";
+import { getCurrentSekki } from "./sekki-data";
+import { SekkiBadge } from "./sekki-badge";
 import {
   type DayData,
   type DotColor,
@@ -52,6 +55,10 @@ export function YearCalendar() {
   // Initialize with empty data to match server render, then load from localStorage after mount
   const [data, setData] = useState<CalendarData>({});
   const [mounted, setMounted] = useState(false);
+  
+  // Sekki mode
+  const { sekkiMode } = useSekkiMode();
+  const currentSekki = getCurrentSekki();
   
   // Undo/Redo history
   const [undoStack, setUndoStack] = useState<CalendarData[]>([]);
@@ -102,14 +109,14 @@ export function YearCalendar() {
 
   const handleDayUpdate = useCallback(
     (month: number, day: number, dayData: DayData) => {
-      const monthKey = `${year}-${month}`;
-      const newData = {
+        const monthKey = `${year}-${month}`;
+        const newData = {
         ...data,
-        [monthKey]: {
+          [monthKey]: {
           ...data[monthKey],
-          [`${day}`]: dayData,
-        },
-      };
+            [`${day}`]: dayData,
+          },
+        };
       updateDataWithUndo(newData);
     },
     [year, data, updateDataWithUndo]
@@ -203,14 +210,14 @@ export function YearCalendar() {
   }, [data]);
 
   const handleUpdate = useCallback((y: number, m: number, d: number, dayData: DayData) => {
-    const monthKey = `${y}-${m}`;
-    const newData = {
+      const monthKey = `${y}-${m}`;
+      const newData = {
       ...data,
-      [monthKey]: {
+        [monthKey]: {
         ...data[monthKey],
-        [`${d}`]: dayData,
-      },
-    };
+          [`${d}`]: dayData,
+        },
+      };
     updateDataWithUndo(newData);
   }, [data, updateDataWithUndo]);
 
@@ -285,6 +292,10 @@ export function YearCalendar() {
           setDay(eventDate.getDate());
           setViewMode("day");
           break;
+        case "toggle_sekki":
+          // Dispatch custom event to toggle sekki mode
+          window.dispatchEvent(new CustomEvent("toggle-sekki-mode"));
+          break;
       }
     },
     [getData, handleUpdate, undo, redo]
@@ -297,7 +308,7 @@ export function YearCalendar() {
         <div className="px-2 sm:px-3 py-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <h1 className="text-[8px] sm:text-[10px] font-medium tracking-widest uppercase text-muted-foreground flex-shrink-0">
-              KAIR° <span className="hidden sm:inline">(CAL)</span>
+              KAIR—CAL
             </h1>
             
             <ViewSwitcher view={viewMode} onViewChange={setViewMode} />
@@ -328,6 +339,9 @@ export function YearCalendar() {
           </div>
 
           <div className="flex items-center gap-3 flex-shrink-0">
+            {sekkiMode && (
+              <SekkiBadge sekki={currentSekki} className="hidden md:flex" />
+            )}
             <p className="text-[8px] text-muted-foreground hidden lg:block">
               Click to add · Double-click for day view
             </p>
@@ -377,7 +391,6 @@ export function YearCalendar() {
             weekStart={getWeekStart(new Date(year, month, day))}
             getData={getData}
             onUpdate={handleUpdate}
-            selectedDotColor={DEFAULT_DOT_COLOR}
             onDayClick={handleDayClick}
             getBlocksForDate={getBlocksForDateFn}
           />

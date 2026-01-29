@@ -3,8 +3,7 @@
 import React from "react";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { type DayData, type DotColor, type TimeBlock, DOT_COLORS, BLOCK_CATEGORIES, DAY_COLORS, type DayColorCode, MONTH_NAMES_SHORT } from "./calendar-types";
-import { DayColorPicker } from "./day-color-picker";
+import { type DayData, type DotColor, type TimeBlock, DOT_COLORS, BLOCK_CATEGORIES } from "./calendar-types";
 import { QuickAddPopover } from "./quick-add-popover";
 
 export type { DotColor, DayData };
@@ -34,7 +33,6 @@ export function DayCell({
 }: DayCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [noteValue, setNoteValue] = useState(data.note);
-  const [colorPickerPos, setColorPickerPos] = useState<{ x: number; y: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Create date object for the popover
@@ -79,24 +77,11 @@ export function DayCell({
     }
   };
 
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setColorPickerPos({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleColorChange = (color: DayColorCode) => {
-    onUpdate({ ...data, dayColor: color });
-    setColorPickerPos(null);
-  };
-
   // Get unique time block categories for this day (use allBlocks which includes recurring)
   const blocks = allBlocks || data.timeBlocks || [];
   const blockCategories = blocks.length > 0
     ? [...new Set(blocks.map((b) => b.category))]
     : [];
-
-  // Get day color info if set
-  const dayColorInfo = data.dayColor ? DAY_COLORS[data.dayColor] : null;
 
   // Double-click navigates to day view
   const handleDoubleClick = (e: React.MouseEvent) => {
@@ -109,14 +94,11 @@ export function DayCell({
     <div
       onClick={handleShiftClick}
       onDoubleClick={handleDoubleClick}
-      onContextMenu={handleContextMenu}
       className={cn(
         "relative border-r border-b border-border p-0.5 cursor-pointer min-h-0 overflow-hidden h-full",
         "transition-colors duration-100",
-        !dayColorInfo && "hover:bg-accent/30",
-        !dayColorInfo && isToday && "bg-accent/50",
-        dayColorInfo && dayColorInfo.bgClass,
-        dayColorInfo && "hover:opacity-80"
+        "hover:bg-accent/30",
+        isToday && "bg-accent/50"
       )}
     >
       {/* Day number */}
@@ -183,24 +165,13 @@ export function DayCell({
   );
 
   return (
-    <>
-      <QuickAddPopover
-        date={date}
-        data={data}
-        onUpdate={onUpdate}
-        onViewFullDay={onDayClick}
-      >
-        {cellContent}
-      </QuickAddPopover>
-      {colorPickerPos && (
-        <DayColorPicker
-          currentColor={data.dayColor ?? null}
-          onColorChange={handleColorChange}
-          onClose={() => setColorPickerPos(null)}
-          position={colorPickerPos}
-          dateLabel={`${MONTH_NAMES_SHORT[month]} ${day}`}
-        />
-      )}
-    </>
+    <QuickAddPopover
+      date={date}
+      data={data}
+      onUpdate={onUpdate}
+      onViewFullDay={onDayClick}
+    >
+      {cellContent}
+    </QuickAddPopover>
   );
 }

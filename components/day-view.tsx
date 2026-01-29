@@ -12,11 +12,12 @@ import {
   WEEKDAYS,
   BLOCK_CATEGORIES,
   type TimeBlockCategory,
-  DAY_COLORS,
-  type DayColorCode,
 } from "./calendar-types";
 import { TimeBlockEditor } from "./time-block-editor";
 import { ContentEditor } from "./content-editor";
+import { useSekkiMode } from "./sekki-context";
+import { getSekki } from "./sekki-data";
+import { SekkiCard } from "./sekki-card";
 
 interface DayViewProps {
   date: Date;
@@ -51,9 +52,11 @@ export function DayView({ date, data, onUpdate }: DayViewProps) {
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
-  const [showDayColorPicker, setShowDayColorPicker] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const dayColorPickerRef = useRef<HTMLDivElement>(null);
+  
+  // Sekki mode
+  const { sekkiMode } = useSekkiMode();
+  const daySekki = getSekki(date);
   
   // Check if desktop and load saved panel width on mount
   useEffect(() => {
@@ -78,19 +81,6 @@ export function DayView({ date, data, onUpdate }: DayViewProps) {
       localStorage.setItem(PANEL_WIDTH_KEY, panelWidth.toString());
     }
   }, [panelWidth, isResizing]);
-  
-  // Close day color picker when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dayColorPickerRef.current && !dayColorPickerRef.current.contains(e.target as Node)) {
-        setShowDayColorPicker(false);
-      }
-    };
-    if (showDayColorPicker) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [showDayColorPicker]);
   
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -142,14 +132,6 @@ export function DayView({ date, data, onUpdate }: DayViewProps) {
   const handleContentBlocksUpdate = (contentBlocks: ContentBlock[]) => {
     onUpdate({ ...data, contentBlocks });
   };
-  
-  const handleDayColorChange = (color: DayColorCode) => {
-    onUpdate({ ...data, dayColor: color });
-    setShowDayColorPicker(false);
-  };
-
-  // Get current day color info
-  const currentDayColor = data.dayColor ? DAY_COLORS[data.dayColor] : null;
 
   // Calculate time stats by category
   const timeBlocks = data.timeBlocks || [];
@@ -195,72 +177,6 @@ export function DayView({ date, data, onUpdate }: DayViewProps) {
                 Today
               </span>
             )}
-            
-            {/* Day Color Picker */}
-            <div className="relative" ref={dayColorPickerRef}>
-              <button
-                type="button"
-                onClick={() => setShowDayColorPicker(!showDayColorPicker)}
-                className={cn(
-                  "flex items-center gap-1.5 px-2 py-1 rounded-sm border text-[9px] sm:text-[10px] transition-colors",
-                  currentDayColor 
-                    ? `${currentDayColor.bgClass} ${currentDayColor.borderClass}` 
-                    : "border-border hover:border-muted-foreground/50"
-                )}
-                title="Set day color"
-              >
-                <div className={cn(
-                  "w-2.5 h-2.5 rounded-full",
-                  currentDayColor ? currentDayColor.bgClassSolid : "bg-muted-foreground/30"
-                )} />
-                <span className="hidden sm:inline text-muted-foreground">
-                  {currentDayColor ? currentDayColor.label : "Color"}
-                </span>
-              </button>
-              
-              {showDayColorPicker && (
-                <div className="absolute top-full left-0 mt-1 z-50 bg-popover border border-border rounded-md shadow-lg p-2 min-w-[180px]">
-                  <div className="text-[9px] uppercase tracking-wider text-muted-foreground mb-2 px-1">
-                    Day Color
-                  </div>
-                  <div className="space-y-1">
-                    {(Object.entries(DAY_COLORS) as [Exclude<DayColorCode, null>, typeof DAY_COLORS[Exclude<DayColorCode, null>]][]).map(
-                      ([code, info]) => (
-                        <button
-                          key={code}
-                          type="button"
-                          onClick={() => handleDayColorChange(code)}
-                          className={cn(
-                            "w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-left transition-colors",
-                            "hover:bg-accent",
-                            data.dayColor === code && "bg-accent"
-                          )}
-                        >
-                          <div className={cn("w-3 h-3 rounded-full flex-shrink-0", info.bgClassSolid)} />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-medium">{info.label}</div>
-                            <div className="text-[8px] text-muted-foreground truncate">{info.description}</div>
-                          </div>
-                        </button>
-                      )
-                    )}
-                    {data.dayColor && (
-                      <>
-                        <div className="border-t border-border my-1" />
-                        <button
-                          type="button"
-                          onClick={() => handleDayColorChange(null)}
-                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-left hover:bg-accent transition-colors"
-                        >
-                          <div className="w-3 h-3 rounded-full flex-shrink-0 border border-muted-foreground/30" />
-                          <span className="text-[10px] text-muted-foreground">Clear color</span>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Day Stats Summary */}
@@ -313,6 +229,13 @@ export function DayView({ date, data, onUpdate }: DayViewProps) {
           )}
         </div>
       </div>
+
+      {/* Sekki Card - shown when mode is enabled */}
+      {sekkiMode && (
+        <div className="border-b border-border px-4 md:px-6 py-3">
+          <SekkiCard sekki={daySekki} date={date} />
+        </div>
+      )}
 
       {/* Mobile Tab Switcher */}
       <div className="md:hidden border-b border-border flex">
@@ -375,24 +298,61 @@ export function DayView({ date, data, onUpdate }: DayViewProps) {
 
           {/* Category Legend */}
           <div className="border-t border-border px-3 md:px-5 py-2 md:py-3">
-            <div className="flex flex-wrap gap-1.5 md:gap-2">
-              {(Object.entries(BLOCK_CATEGORIES) as [TimeBlockCategory, typeof BLOCK_CATEGORIES[TimeBlockCategory]][]).map(
-                ([cat, info]) => (
-                  <div
-                    key={cat}
-                    className="flex items-center gap-1 md:gap-1.5 text-[8px] md:text-[9px] text-muted-foreground"
-                  >
-                    <div
-                      className={cn(
-                        "w-1.5 h-1.5 md:w-2 md:h-2 rounded-sm border",
-                        info.bgClass,
-                        info.borderClass
-                      )}
-                    />
-                    <span>{info.label}</span>
-                  </div>
-                )
-              )}
+            <div className="flex items-start justify-between gap-3">
+              {/* Categories in 2 rows: 4 + 3 */}
+              <div className="flex flex-col gap-1">
+                {/* First row: 4 categories */}
+                <div className="flex gap-2 md:gap-3">
+                  {(Object.entries(BLOCK_CATEGORIES) as [TimeBlockCategory, typeof BLOCK_CATEGORIES[TimeBlockCategory]][])
+                    .slice(0, 4)
+                    .map(([cat, info]) => (
+                      <div
+                        key={cat}
+                        className="flex items-center gap-1 md:gap-1.5 text-[8px] md:text-[9px] text-muted-foreground"
+                      >
+                        <div
+                          className={cn(
+                            "w-1.5 h-1.5 md:w-2 md:h-2 rounded-sm border",
+                            info.bgClass,
+                            info.borderClass
+                          )}
+                        />
+                        <span>{info.label}</span>
+                      </div>
+                    ))}
+                </div>
+                {/* Second row: 3 categories */}
+                <div className="flex gap-2 md:gap-3">
+                  {(Object.entries(BLOCK_CATEGORIES) as [TimeBlockCategory, typeof BLOCK_CATEGORIES[TimeBlockCategory]][])
+                    .slice(4)
+                    .map(([cat, info]) => (
+                      <div
+                        key={cat}
+                        className="flex items-center gap-1 md:gap-1.5 text-[8px] md:text-[9px] text-muted-foreground"
+                      >
+                        <div
+                          className={cn(
+                            "w-1.5 h-1.5 md:w-2 md:h-2 rounded-sm border",
+                            info.bgClass,
+                            info.borderClass
+                          )}
+                        />
+                        <span>{info.label}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+              
+              {/* View Time Types link */}
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('open-time-types-guide'));
+                }}
+                className="text-[8px] md:text-[9px] text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 flex-shrink-0"
+              >
+                View Time Types
+              </button>
             </div>
           </div>
         </div>

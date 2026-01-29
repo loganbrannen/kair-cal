@@ -7,7 +7,6 @@ import {
   type DayData,
   type DotColor,
   type CalendarData,
-  type DayColorCode,
   type TimeBlock,
   WEEKDAYS,
   getDaysInMonth,
@@ -15,12 +14,7 @@ import {
   isToday,
   BLOCK_CATEGORIES,
   formatTimeRange,
-  DOT_COLORS,
-  DAY_COLORS,
-  MONTH_NAMES_SHORT,
 } from "./calendar-types";
-import { useState } from "react";
-import { DayColorPicker } from "./day-color-picker";
 import { QuickAddPopover } from "./quick-add-popover";
 
 interface MonthViewProps {
@@ -41,40 +35,23 @@ function DayCellLarge({
   allBlocks,
   isCurrentDay,
   onUpdate,
-  selectedDotColor,
   onDayClick,
 }: {
   day: number;
   month: number;
   year: number;
   data: DayData;
-  allBlocks: TimeBlock[]; // All blocks including recurring
+  allBlocks: TimeBlock[];
   isCurrentDay: boolean;
   onUpdate: (data: DayData) => void;
-  selectedDotColor: DotColor;
   onDayClick: () => void;
 }) {
-  const [colorPickerPos, setColorPickerPos] = useState<{ x: number; y: number } | null>(null);
-
   // Use allBlocks which includes recurring blocks (already sorted)
   const visibleBlocks = allBlocks.slice(0, 3);
   const moreCount = allBlocks.length - 3;
 
-  // Get day color info
-  const dayColorInfo = data.dayColor ? DAY_COLORS[data.dayColor] : null;
-
   // Create date object for the popover
   const date = new Date(year, month, day);
-
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setColorPickerPos({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleColorChange = (color: DayColorCode) => {
-    onUpdate({ ...data, dayColor: color });
-    setColorPickerPos(null);
-  };
 
   // Double-click navigates to day view
   const handleDoubleClick = (e: React.MouseEvent) => {
@@ -84,86 +61,77 @@ function DayCellLarge({
   };
 
   const cellContent = (
-    <div
+      <div
       onDoubleClick={handleDoubleClick}
-      onContextMenu={handleContextMenu}
-      className={cn(
-        "relative border-r border-b border-border p-1 cursor-pointer min-h-0 flex flex-col gap-0.5 overflow-hidden h-full",
-        "transition-colors duration-100",
-        !dayColorInfo && "hover:bg-accent/30",
-        !dayColorInfo && isCurrentDay && "bg-accent/50",
-        dayColorInfo && dayColorInfo.bgClass,
-        dayColorInfo && "hover:opacity-80"
-      )}
-    >
-      {/* Day number */}
-      <span
         className={cn(
-          "text-[10px] leading-none flex-shrink-0",
-          isCurrentDay ? "text-foreground font-medium" : "text-muted-foreground"
+        "relative border-r border-b border-border p-1 cursor-pointer min-h-0 flex flex-col gap-0.5 overflow-hidden h-full",
+          "transition-colors duration-100",
+          "hover:bg-accent/30",
+          isCurrentDay && "bg-accent/50"
         )}
       >
-        {day}
-      </span>
+        {/* Day number */}
+        <span
+          className={cn(
+            "text-[10px] leading-none flex-shrink-0",
+            isCurrentDay ? "text-foreground font-medium" : "text-muted-foreground"
+          )}
+        >
+          {day}
+        </span>
 
-      {/* Time blocks as cards */}
-      <div className="flex-1 flex flex-col gap-0.5 min-h-0 overflow-hidden">
-        {visibleBlocks.map((block) => {
-          const cat = BLOCK_CATEGORIES[block.category];
-          // Fallback for legacy categories
-          if (!cat) {
+        {/* Time blocks as cards */}
+        <div className="flex-1 flex flex-col gap-0.5 min-h-0 overflow-hidden">
+          {visibleBlocks.map((block) => {
+            const cat = BLOCK_CATEGORIES[block.category];
+            // Format start time (e.g., "9a" or "2p")
+            const [h] = block.startTime.split(":").map(Number);
+            const timeStr = h === 0 ? "12a" : h === 12 ? "12p" : h > 12 ? `${h - 12}p` : `${h}a`;
+            // Fallback for legacy categories
+            if (!cat) {
+              return (
+                <div
+                  key={block.id}
+                  className="flex items-center gap-1 px-1 py-0.5 rounded-sm bg-muted/50 text-[8px] leading-tight truncate"
+                  title={`${block.title} (${formatTimeRange(block.startTime, block.endTime)})`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 flex-shrink-0" />
+                  <span className="text-muted-foreground flex-shrink-0">{timeStr}</span>
+                  <span className="font-medium truncate">{block.title}</span>
+                </div>
+              );
+            }
             return (
               <div
                 key={block.id}
-                className="px-1 py-0.5 rounded-sm border-l-2 border-muted-foreground/50 bg-muted/50 text-[8px] leading-tight truncate"
+                className={cn(
+                  "flex items-center gap-1 px-1 py-0.5 rounded-sm text-[8px] leading-tight",
+                  cat.bgClass
+                )}
                 title={`${block.title} (${formatTimeRange(block.startTime, block.endTime)})`}
               >
-                <span className="font-medium">{block.title}</span>
+                <span className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", cat.bgClassSolid)} />
+                <span className="text-muted-foreground flex-shrink-0">{timeStr}</span>
+                <span className="font-medium truncate">{block.title || cat.label}</span>
               </div>
             );
-          }
-          return (
-            <div
-              key={block.id}
-              className={cn(
-                "px-1 py-0.5 rounded-sm border-l-2 text-[8px] leading-tight truncate",
-                cat.bgClass,
-                cat.borderClass
-              )}
-              title={`${block.title} (${formatTimeRange(block.startTime, block.endTime)})`}
-            >
-              <span className="font-medium">{block.title || cat.label}</span>
-            </div>
-          );
-        })}
-        {moreCount > 0 && (
-          <span className="text-[8px] text-muted-foreground">+{moreCount} more</span>
-        )}
+          })}
+          {moreCount > 0 && (
+            <span className="text-[8px] text-muted-foreground">+{moreCount} more</span>
+          )}
+        </div>
       </div>
-    </div>
   );
 
   return (
-    <>
-      <QuickAddPopover
-        date={date}
-        data={data}
-        onUpdate={onUpdate}
-        onViewFullDay={onDayClick}
-      >
-        {cellContent}
-      </QuickAddPopover>
-      
-      {colorPickerPos && (
-        <DayColorPicker
-          currentColor={data.dayColor ?? null}
-          onColorChange={handleColorChange}
-          onClose={() => setColorPickerPos(null)}
-          position={colorPickerPos}
-          dateLabel={`${MONTH_NAMES_SHORT[month]} ${day}`}
-        />
-      )}
-    </>
+    <QuickAddPopover
+      date={date}
+      data={data}
+      onUpdate={onUpdate}
+      onViewFullDay={onDayClick}
+    >
+      {cellContent}
+    </QuickAddPopover>
   );
 }
 
@@ -187,7 +155,7 @@ export function MonthView({
 
   const monthKey = `${year}-${month}`;
   const monthData = data[monthKey] || {};
-
+  
   return (
     <div className="h-full flex flex-col">
       {/* Weekday headers */}
@@ -230,7 +198,6 @@ export function MonthView({
               allBlocks={allBlocks}
               isCurrentDay={isToday(year, month, d)}
               onUpdate={(newData) => onDayUpdate(month, d, newData)}
-              selectedDotColor={selectedDotColor}
               onDayClick={() => onDayClick(d)}
             />
           );
