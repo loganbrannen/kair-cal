@@ -10,22 +10,67 @@ import {
   type BulletItem,
   type CodeData,
   type LinkData,
+  type BentoData,
+  type BentoCard,
   generateId,
 } from "./calendar-types";
+
+// Link icon component
+function LinkIcon({ className }: { className?: string }) {
+  return (
+    <svg 
+      className={className} 
+      width="10" 
+      height="10" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    >
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  );
+}
+
+// Grid icon for bento
+function GridIcon({ className }: { className?: string }) {
+  return (
+    <svg 
+      className={className} 
+      width="10" 
+      height="10" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+    </svg>
+  );
+}
 
 interface ContentEditorProps {
   blocks: ContentBlock[];
   onUpdate: (blocks: ContentBlock[]) => void;
 }
 
-const BLOCK_TYPES = [
-  { type: "text" as const, label: "Text", icon: "T" },
-  { type: "checklist" as const, label: "Checklist", icon: "☑" },
-  { type: "bullets" as const, label: "Bullets", icon: "•" },
-  { type: "heading" as const, label: "Heading", icon: "H" },
-  { type: "code" as const, label: "Code", icon: "</>" },
-  { type: "link" as const, label: "Link", icon: "🔗" },
-  { type: "divider" as const, label: "Divider", icon: "—" },
+const BLOCK_TYPES: { type: ContentBlock["type"]; label: string; icon: string | "link" | "bento" }[] = [
+  { type: "text", label: "Text", icon: "T" },
+  { type: "checklist", label: "Checklist", icon: "☑" },
+  { type: "bullets", label: "Bullets", icon: "•" },
+  { type: "heading", label: "Heading", icon: "H" },
+  { type: "code", label: "Code", icon: "</>" },
+  { type: "link", label: "Link", icon: "link" },
+  { type: "bento", label: "Bento", icon: "bento" },
+  { type: "divider", label: "Divider", icon: "—" },
 ];
 
 export function ContentEditor({ blocks, onUpdate }: ContentEditorProps) {
@@ -47,6 +92,17 @@ export function ContentEditor({ blocks, onUpdate }: ContentEditorProps) {
         break;
       case "link":
         content = { url: "", title: "", description: "" };
+        break;
+      case "bento":
+        content = { 
+          columns: 2, 
+          cards: [
+            { id: generateId() },
+            { id: generateId() },
+            { id: generateId() },
+            { id: generateId() },
+          ] 
+        };
         break;
       case "divider":
         content = "";
@@ -81,6 +137,28 @@ export function ContentEditor({ blocks, onUpdate }: ContentEditorProps) {
 
   return (
     <div className="space-y-3">
+      {/* Add block buttons - fixed at top */}
+      <div className="flex gap-1.5 flex-wrap pb-2 border-b border-border/50">
+        {BLOCK_TYPES.map(({ type, label, icon }) => (
+          <button
+            key={type}
+            type="button"
+            onClick={() => addBlock(type)}
+            className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground px-2 py-1.5 border border-dashed border-border hover:border-foreground/30 transition-colors rounded-sm"
+          >
+            {icon === "link" ? (
+              <LinkIcon className="w-2.5 h-2.5" />
+            ) : icon === "bento" ? (
+              <GridIcon className="w-2.5 h-2.5" />
+            ) : (
+              <span className="text-[10px]">{icon}</span>
+            )}
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content blocks */}
       {blocks.map((block, index) => (
         <ContentBlockItem
           key={block.id}
@@ -91,21 +169,6 @@ export function ContentEditor({ blocks, onUpdate }: ContentEditorProps) {
           onMoveDown={index < blocks.length - 1 ? () => moveBlock(block.id, "down") : undefined}
         />
       ))}
-
-      {/* Add block buttons */}
-      <div className="flex gap-1.5 flex-wrap pt-2">
-        {BLOCK_TYPES.map(({ type, label, icon }) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => addBlock(type)}
-            className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground px-2 py-1.5 border border-dashed border-border hover:border-foreground/30 transition-colors rounded-sm"
-          >
-            <span className="text-[10px]">{icon}</span>
-            {label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -213,6 +276,19 @@ function ContentBlockItem({ block, onUpdate, onDelete, onMoveUp, onMoveDown }: C
         <BlockControls />
         <LinkBlockEditor
           data={block.content as LinkData}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      </div>
+    );
+  }
+
+  if (block.type === "bento") {
+    return (
+      <div className="group relative pl-6">
+        <BlockControls />
+        <BentoBlockEditor
+          data={block.content as BentoData}
           onUpdate={onUpdate}
           onDelete={onDelete}
         />
@@ -710,6 +786,168 @@ function LinkBlockEditor({
       >
         Remove
       </button>
+    </div>
+  );
+}
+
+// Bento Grid Editor
+function BentoBlockEditor({
+  data,
+  onUpdate,
+  onDelete,
+}: {
+  data: BentoData;
+  onUpdate: (data: BentoData) => void;
+  onDelete: () => void;
+}) {
+  const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+
+  const handleImageUpload = (cardId: string, file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      const updatedCards = data.cards.map((card) =>
+        card.id === cardId ? { ...card, imageData: base64 } : card
+      );
+      onUpdate({ ...data, cards: updatedCards });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCardClick = (cardId: string) => {
+    const input = fileInputRefs.current.get(cardId);
+    if (input) {
+      input.click();
+    }
+  };
+
+  const addCard = () => {
+    onUpdate({
+      ...data,
+      cards: [...data.cards, { id: generateId() }],
+    });
+  };
+
+  const removeCard = (cardId: string) => {
+    if (data.cards.length <= 1) return;
+    onUpdate({
+      ...data,
+      cards: data.cards.filter((c) => c.id !== cardId),
+    });
+  };
+
+  const toggleColumns = () => {
+    onUpdate({
+      ...data,
+      columns: data.columns === 2 ? 3 : 2,
+    });
+  };
+
+  return (
+    <div className="relative">
+      {/* Controls */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleColumns}
+            className="text-[9px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 border border-border rounded-sm"
+          >
+            {data.columns} cols
+          </button>
+          <button
+            type="button"
+            onClick={addCard}
+            className="text-[9px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 border border-border rounded-sm"
+          >
+            + Add card
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="text-[9px] text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+        >
+          Remove
+        </button>
+      </div>
+
+      {/* Bento Grid */}
+      <div
+        className="grid gap-2"
+        style={{ gridTemplateColumns: `repeat(${data.columns}, 1fr)` }}
+      >
+        {data.cards.map((card) => (
+          <div
+            key={card.id}
+            className="relative aspect-square border border-dashed border-border rounded-sm overflow-hidden hover:border-foreground/30 transition-colors cursor-pointer group/card"
+            onClick={() => handleCardClick(card.id)}
+          >
+            <input
+              ref={(el) => {
+                if (el) fileInputRefs.current.set(card.id, el);
+              }}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImageUpload(card.id, file);
+              }}
+            />
+            
+            {card.imageData ? (
+              <>
+                <img
+                  src={card.imageData}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeCard(card.id);
+                  }}
+                  className="absolute top-1 right-1 w-5 h-5 bg-background/80 rounded-full flex items-center justify-center text-[10px] text-muted-foreground opacity-0 group-hover/card:opacity-100 hover:text-destructive transition-opacity"
+                >
+                  ×
+                </button>
+              </>
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/50">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                <span className="text-[8px] mt-1">Click to upload</span>
+                {data.cards.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeCard(card.id);
+                    }}
+                    className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center text-[10px] text-muted-foreground opacity-0 group-hover/card:opacity-100 hover:text-destructive transition-opacity"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

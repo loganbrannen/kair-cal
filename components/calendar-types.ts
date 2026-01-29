@@ -111,10 +111,20 @@ export interface CodeData {
   code: string;
 }
 
+export interface BentoCard {
+  id: string;
+  imageData?: string; // base64 encoded image data
+}
+
+export interface BentoData {
+  columns: number; // 2 or 3
+  cards: BentoCard[];
+}
+
 export interface ContentBlock {
   id: string;
-  type: "text" | "checklist" | "bullets" | "code" | "link" | "divider" | "heading";
-  content: string | ChecklistItem[] | BulletItem[] | CodeData | LinkData;
+  type: "text" | "checklist" | "bullets" | "code" | "link" | "divider" | "heading" | "bento";
+  content: string | ChecklistItem[] | BulletItem[] | CodeData | LinkData | BentoData;
 }
 
 // Duration presets in minutes for quick time block creation

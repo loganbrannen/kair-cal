@@ -6,7 +6,6 @@ import {
   type TimeBlock,
   type TimeBlockCategory,
   BLOCK_CATEGORIES,
-  DURATION_PRESETS,
   generateId,
   formatTimeRange,
   addMinutesToTime,
@@ -18,6 +17,16 @@ interface TimeBlockEditorProps {
 }
 
 const CATEGORY_KEYS = Object.keys(BLOCK_CATEGORIES) as TimeBlockCategory[];
+
+// Quick duration options matching quick add popover
+const QUICK_DURATIONS = [15, 30, 45, 60, 90, 120];
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
 
 // Get next available start time based on existing blocks
 function getNextAvailableTime(blocks: TimeBlock[]): string {
@@ -102,63 +111,74 @@ export function TimeBlockEditor({ blocks, onUpdate }: TimeBlockEditorProps) {
 
         if (editingId === block.id) {
           return (
-            <div key={block.id} className="flex flex-col gap-2 p-2 border border-dashed border-border rounded-sm">
+            <div key={block.id} className="flex flex-col gap-3 p-3 border border-dashed border-border rounded-md">
+              {/* Title input */}
               <input
                 type="text"
                 value={block.title}
                 onChange={(e) => updateBlock(block.id, { title: e.target.value })}
-                className="text-xs bg-transparent border-b border-border px-1 py-1 outline-none"
+                className="w-full text-sm bg-transparent border-b border-border/50 px-0 py-2 outline-none focus:border-foreground transition-colors"
                 autoFocus
               />
-              <div className="flex gap-1 items-center">
+              
+              {/* Time row */}
+              <div className="flex items-center gap-2 text-sm">
                 <input
                   type="time"
                   value={block.startTime}
                   onChange={(e) => updateBlock(block.id, { startTime: e.target.value })}
-                  className="w-[4.5rem] text-[10px] bg-transparent border border-border px-1 py-0.5 rounded-sm"
+                  className="bg-muted/50 px-2 py-1 rounded text-sm outline-none focus:ring-1 focus:ring-foreground/20 w-[90px]"
                 />
-                <span className="text-[10px] text-muted-foreground">to</span>
+                <span className="text-muted-foreground">–</span>
                 <input
                   type="time"
                   value={block.endTime}
                   onChange={(e) => updateBlock(block.id, { endTime: e.target.value })}
-                  className="w-[4.5rem] text-[10px] bg-transparent border border-border px-1 py-0.5 rounded-sm"
+                  className="bg-muted/50 px-2 py-1 rounded text-sm outline-none focus:ring-1 focus:ring-foreground/20 w-[90px]"
                 />
               </div>
-              <div className="flex gap-1 flex-wrap">
+              
+              {/* Category - color dots */}
+              <div className="flex items-center gap-1">
                 {CATEGORY_KEYS.map((catKey) => {
                   const c = BLOCK_CATEGORIES[catKey];
+                  const isSelected = block.category === catKey;
+                  const colorClass = c.borderClass.replace("border-", "bg-");
                   return (
                     <button
                       key={catKey}
                       type="button"
                       onClick={() => updateBlock(block.id, { category: catKey })}
                       className={cn(
-                        "text-[8px] uppercase tracking-wider px-1.5 py-0.5 border rounded-sm transition-colors",
-                        block.category === catKey
-                          ? cn(c.bgClass, c.borderClass)
-                          : "bg-transparent text-muted-foreground border-border hover:border-foreground/30"
+                        "group relative w-6 h-6 rounded-full flex items-center justify-center transition-all",
+                        isSelected ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "hover:scale-110"
                       )}
+                      title={c.label}
                     >
-                      {c.label}
+                      <span className={cn("w-4 h-4 rounded-full", colorClass)} />
                     </button>
                   );
                 })}
+                <span className="text-xs text-muted-foreground ml-2">
+                  {BLOCK_CATEGORIES[block.category].label}
+                </span>
               </div>
-              <div className="flex gap-1 mt-1">
-                <button
-                  type="button"
-                  onClick={() => setEditingId(null)}
-                  className="text-[9px] uppercase tracking-wider px-2 py-0.5 bg-muted hover:bg-muted/80 rounded-sm"
-                >
-                  Done
-                </button>
+              
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => deleteBlock(block.id)}
-                  className="text-[9px] uppercase tracking-wider px-2 py-0.5 text-destructive hover:bg-destructive/10 rounded-sm"
+                  className="text-sm px-3 py-1.5 text-destructive hover:bg-destructive/10 rounded transition-colors"
                 >
                   Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingId(null)}
+                  className="text-sm px-4 py-1.5 bg-foreground text-background hover:bg-foreground/90 rounded-full transition-colors"
+                >
+                  Done
                 </button>
               </div>
             </div>
@@ -199,103 +219,95 @@ export function TimeBlockEditor({ blocks, onUpdate }: TimeBlockEditorProps) {
         );
       })}
 
-      {/* Add new block form */}
+      {/* Add new block form - matching quick add popover style */}
       {isAdding ? (
-        <div className="flex flex-col gap-2.5 p-2 border border-dashed border-border rounded-sm">
-          {/* Title input */}
+        <div className="flex flex-col gap-3 p-3 border border-dashed border-border rounded-md">
+          {/* Title input - clean underline style */}
           <input
             type="text"
             value={newBlock.title}
             onChange={(e) => setNewBlock({ ...newBlock, title: e.target.value })}
-            placeholder="What are you doing?"
-            className="text-xs bg-transparent border-b border-border px-1 py-1 placeholder:text-muted-foreground/50 outline-none"
+            placeholder="Add title"
+            className="w-full text-sm bg-transparent border-b border-border/50 px-0 py-2 placeholder:text-muted-foreground/40 outline-none focus:border-foreground transition-colors"
             autoFocus
             onKeyDown={(e) => e.key === "Enter" && addBlock()}
           />
 
-          {/* Quick duration presets */}
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Duration</span>
-            <div className="flex gap-1 flex-wrap">
-              {DURATION_PRESETS.map((preset) => (
+          {/* Time row */}
+          <div className="flex items-center gap-2 text-sm">
+            <input
+              type="time"
+              value={newBlock.startTime}
+              onChange={(e) => handleStartTimeChange(e.target.value)}
+              className="bg-muted/50 px-2 py-1 rounded text-sm outline-none focus:ring-1 focus:ring-foreground/20 w-[90px]"
+            />
+            <span className="text-muted-foreground">–</span>
+            <span className="text-muted-foreground tabular-nums">
+              {newBlock.endTime && formatTimeRange(newBlock.startTime!, newBlock.endTime).split('-')[1]}
+            </span>
+          </div>
+
+          {/* Duration pills - compact row */}
+          <div className="flex gap-1">
+            {QUICK_DURATIONS.map((mins) => (
+              <button
+                key={mins}
+                type="button"
+                onClick={() => handleDurationChange(mins)}
+                className={cn(
+                  "text-xs px-2 py-1 rounded transition-all",
+                  selectedDuration === mins
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                {formatDuration(mins)}
+              </button>
+            ))}
+          </div>
+
+          {/* Category - color dots */}
+          <div className="flex items-center gap-1">
+            {CATEGORY_KEYS.map((catKey) => {
+              const c = BLOCK_CATEGORIES[catKey];
+              const isSelected = newBlock.category === catKey;
+              const colorClass = c.borderClass.replace("border-", "bg-");
+              return (
                 <button
-                  key={preset.minutes}
+                  key={catKey}
                   type="button"
-                  onClick={() => handleDurationChange(preset.minutes)}
+                  onClick={() => setNewBlock({ ...newBlock, category: catKey })}
                   className={cn(
-                    "text-[9px] px-2 py-0.5 border rounded-sm transition-colors",
-                    selectedDuration === preset.minutes
-                      ? "bg-foreground text-background border-foreground"
-                      : "bg-transparent text-muted-foreground border-border hover:border-foreground/30"
+                    "group relative w-6 h-6 rounded-full flex items-center justify-center transition-all",
+                    isSelected ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "hover:scale-110"
                   )}
+                  title={c.label}
                 >
-                  {preset.label}
+                  <span className={cn("w-4 h-4 rounded-full", colorClass)} />
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Start time with auto end time */}
-          <div className="flex gap-2 items-center">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Start</span>
-              <input
-                type="time"
-                value={newBlock.startTime}
-                onChange={(e) => handleStartTimeChange(e.target.value)}
-                className="w-[5rem] text-[10px] bg-transparent border border-border px-1.5 py-1 rounded-sm"
-              />
-            </div>
-            <span className="text-muted-foreground mt-4">→</span>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[9px] uppercase tracking-wider text-muted-foreground">End</span>
-              <span className="text-[10px] px-1.5 py-1 text-muted-foreground">
-                {newBlock.endTime && formatTimeRange(newBlock.startTime!, newBlock.endTime).split('-')[1]}
-              </span>
-            </div>
-          </div>
-
-          {/* Category selector */}
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Category</span>
-            <div className="flex gap-1 flex-wrap">
-              {CATEGORY_KEYS.map((catKey) => {
-                const c = BLOCK_CATEGORIES[catKey];
-                return (
-                  <button
-                    key={catKey}
-                    type="button"
-                    onClick={() => setNewBlock({ ...newBlock, category: catKey })}
-                    className={cn(
-                      "text-[8px] uppercase tracking-wider px-1.5 py-0.5 border rounded-sm transition-colors",
-                      newBlock.category === catKey
-                        ? cn(c.bgClass, c.borderClass)
-                        : "bg-transparent text-muted-foreground border-border hover:border-foreground/30"
-                    )}
-                  >
-                    {c.label}
-                  </button>
-                );
-              })}
-            </div>
+              );
+            })}
+            <span className="text-xs text-muted-foreground ml-2">
+              {BLOCK_CATEGORIES[newBlock.category || "focus"].label}
+            </span>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-1 pt-1">
+          <div className="flex items-center justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setIsAdding(false)}
+              className="text-sm px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancel
+            </button>
             <button
               type="button"
               onClick={addBlock}
               disabled={!newBlock.title?.trim()}
-              className="text-[10px] uppercase tracking-wider px-3 py-1 bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-sm"
+              className="text-sm px-4 py-1.5 bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors"
             >
-              Add Block
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsAdding(false)}
-              className="text-[10px] uppercase tracking-wider px-3 py-1 text-muted-foreground hover:text-foreground rounded-sm"
-            >
-              Cancel
+              Save
             </button>
           </div>
         </div>

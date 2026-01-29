@@ -1,28 +1,49 @@
 "use client";
 
-import React from "react"
-
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   type DayData,
-  type DotColor,
-  type DayColorCode,
   type TimeBlock,
   WEEKDAYS,
   MONTH_NAMES_SHORT,
   BLOCK_CATEGORIES,
-  formatTimeRange,
-  DAY_COLORS,
+  formatTime,
 } from "./calendar-types";
-import { DayColorPicker } from "./day-color-picker";
 import { QuickAddPopover } from "./quick-add-popover";
+import { useSekkiMode } from "./sekki-context";
+import { getSekki } from "./sekki-data";
+import { SekkiSubheader } from "./sekki-badge";
+
+// Timeline configuration
+const START_HOUR = 8; // 8 AM
+const END_HOUR = 23; // 11 PM (shows 8 AM - 10 PM)
+const TOTAL_HOURS = END_HOUR - START_HOUR; // 15 hours
+
+// Generate array of hours to display
+const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
+
+// Helper to convert time string (HH:MM) to percentage from top
+function timeToPercent(time: string): number {
+  const [hours, minutes] = time.split(":").map(Number);
+  // Clamp hours to visible range
+  const clampedHours = Math.max(START_HOUR, Math.min(END_HOUR, hours));
+  const totalMinutes = (clampedHours - START_HOUR) * 60 + (hours >= START_HOUR && hours < END_HOUR ? minutes : 0);
+  return (totalMinutes / (TOTAL_HOURS * 60)) * 100;
+}
+
+// Helper to format hour for display
+function formatHour(hour: number): string {
+  if (hour === 0) return "12 AM";
+  if (hour === 12) return "12 PM";
+  if (hour < 12) return `${hour} AM`;
+  return `${hour - 12} PM`;
+}
 
 interface WeekViewProps {
   weekStart: Date;
   getData: (year: number, month: number, day: number) => DayData;
   onUpdate: (year: number, month: number, day: number, data: DayData) => void;
-  selectedDotColor: DotColor;
   onDayClick?: (date: Date) => void;
   getBlocksForDate?: (date: Date) => TimeBlock[];
 }
@@ -31,199 +52,238 @@ export function WeekView({
   weekStart,
   getData,
   onUpdate,
-  selectedDotColor,
   onDayClick,
   getBlocksForDate,
 }: WeekViewProps) {
+  const { sekkiMode } = useSekkiMode();
+  
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const todayStart = new Date(today);
+  todayStart.setHours(0, 0, 0, 0);
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + i);
     return d;
   });
+  
+  // Get sekki for the middle of the week (Wednesday)
+  const midWeekDate = new Date(weekStart);
+  midWeekDate.setDate(midWeekDate.getDate() + 3);
+  const weekSekki = getSekki(midWeekDate);
 
   return (
-    <div className="h-full flex">
-      {days.map((date, i) => {
-        const isToday = date.getTime() === today.getTime();
-        const dayData = getData(date.getFullYear(), date.getMonth(), date.getDate());
-        // Get all blocks including recurring ones
-        const allBlocks = getBlocksForDate ? getBlocksForDate(date) : (dayData.timeBlocks || []);
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Sekki subheader - shown when mode is enabled */}
+      {sekkiMode && (
+        <div className="flex justify-center py-1.5 border-b border-border/50 bg-background">
+          <SekkiSubheader sekki={weekSekki} />
+        </div>
+      )}
+      
+      {/* Fixed header row */}
+      <div className="flex flex-shrink-0">
+        {/* Time gutter header (empty spacer) */}
+        <div className="w-12 flex-shrink-0 border-r border-border bg-background" />
+        
+        {/* Day headers */}
+        {days.map((date, i) => {
+          const isToday = date.getTime() === todayStart.getTime();
 
-        return (
-          <WeekDayColumn
-            key={i}
-            date={date}
-            data={dayData}
-            allBlocks={allBlocks}
-            isToday={isToday}
-            onUpdate={(data) => onUpdate(date.getFullYear(), date.getMonth(), date.getDate(), data)}
-            selectedDotColor={selectedDotColor}
-            onDayClick={onDayClick}
-          />
-        );
-      })}
+          return (
+            <div
+              key={i}
+              className={cn(
+                "flex-1 flex flex-col items-center py-1.5 border-r border-b border-border cursor-pointer min-w-0",
+                "hover:bg-accent/30 transition-colors",
+                isToday && "bg-accent/50"
+              )}
+              onDoubleClick={() => onDayClick?.(date)}
+            >
+              <span className="text-[9px] uppercase tracking-wider text-muted-foreground">
+                {WEEKDAYS[date.getDay()]}
+              </span>
+              <span
+                className={cn(
+                  "w-7 h-7 flex items-center justify-center rounded-full text-base font-light",
+                  isToday
+                    ? "bg-foreground text-background"
+                    : "text-foreground/80"
+                )}
+              >
+                {date.getDate()}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Timeline grid - no scroll, fills available space */}
+      <div className="flex flex-1 min-h-0">
+        {/* Time gutter */}
+        <div className="w-12 flex-shrink-0 border-r border-border relative bg-background">
+          {HOURS.map((hour, i) => (
+            <div
+              key={hour}
+              className="absolute w-full flex items-start justify-end pr-1.5"
+              style={{ top: `calc(${(i / TOTAL_HOURS) * 100}% - 6px)` }}
+            >
+              <span className="text-[9px] text-muted-foreground tabular-nums">
+                {formatHour(hour)}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Day columns */}
+        {days.map((date, i) => {
+          const isToday = date.getTime() === todayStart.getTime();
+          const dayData = getData(date.getFullYear(), date.getMonth(), date.getDate());
+          const allBlocks = getBlocksForDate
+            ? getBlocksForDate(date)
+            : dayData.timeBlocks || [];
+
+          return (
+            <TimelineColumn
+              key={i}
+              date={date}
+              data={dayData}
+              allBlocks={allBlocks}
+              isToday={isToday}
+              currentTime={currentTime}
+              onUpdate={(data) =>
+                onUpdate(date.getFullYear(), date.getMonth(), date.getDate(), data)
+              }
+              onDayClick={onDayClick}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-interface WeekDayColumnProps {
+interface TimelineColumnProps {
   date: Date;
   data: DayData;
-  allBlocks: TimeBlock[]; // All blocks including recurring
+  allBlocks: TimeBlock[];
   isToday: boolean;
+  currentTime: Date;
   onUpdate: (data: DayData) => void;
-  selectedDotColor: DotColor;
   onDayClick?: (date: Date) => void;
 }
 
-function WeekDayColumn({
+function TimelineColumn({
   date,
   data,
   allBlocks,
   isToday,
-  onDayClick,
+  currentTime,
   onUpdate,
-}: WeekDayColumnProps) {
-  const [colorPickerPos, setColorPickerPos] = useState<{ x: number; y: number } | null>(null);
-  
-  // Use allBlocks which includes recurring blocks (already sorted)
-  const sortedBlocks = allBlocks;
-  
-  // Get day color info
-  const dayColorInfo = data.dayColor ? DAY_COLORS[data.dayColor] : null;
-
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setColorPickerPos({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleColorChange = (color: DayColorCode) => {
-    onUpdate({ ...data, dayColor: color });
-    setColorPickerPos(null);
-  };
-
-  // Double-click navigates to day view
-  const handleDoubleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onDayClick?.(date);
-  };
-
-  // Day header content (for adding new blocks)
-  const dayHeader = (
-    <div
-      onDoubleClick={handleDoubleClick}
-      className={cn(
-        "flex flex-col items-center py-2 border-b border-border cursor-pointer flex-shrink-0",
-        "hover:bg-accent/30 transition-colors",
-        !dayColorInfo && isToday && "bg-accent/50"
-      )}
-    >
-      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-        {WEEKDAYS[date.getDay()]}
-      </span>
-      <span className={cn(
-        "text-lg font-light",
-        isToday ? "text-foreground" : "text-foreground/80"
-      )}>
-        {date.getDate()}
-      </span>
-      <span className="text-[9px] text-muted-foreground">
-        {MONTH_NAMES_SHORT[date.getMonth()]}
-      </span>
-    </div>
-  );
+  onDayClick,
+}: TimelineColumnProps) {
+  // Calculate current time indicator position (only if within visible hours)
+  const currentHour = currentTime.getHours();
+  const showCurrentTime = isToday && currentHour >= START_HOUR && currentHour < END_HOUR;
+  const currentTimePercent = showCurrentTime
+    ? timeToPercent(
+        `${currentTime.getHours().toString().padStart(2, "0")}:${currentTime.getMinutes().toString().padStart(2, "0")}`
+      )
+    : null;
 
   return (
-    <>
-      <div 
-        onContextMenu={handleContextMenu}
-        className={cn(
-          "flex-1 flex flex-col border-r border-border min-w-0",
-          dayColorInfo && dayColorInfo.bgClass
-        )}
-      >
-        {/* Day header - wrapped in popover for quick add */}
-        <QuickAddPopover
-          date={date}
-          data={data}
-          onUpdate={onUpdate}
-          onViewFullDay={() => onDayClick?.(date)}
-        >
-          {dayHeader}
-        </QuickAddPopover>
+    <div className="flex-1 border-r border-border relative min-w-0">
+        {/* Hour grid lines */}
+        {HOURS.map((hour, i) => (
+          <div
+            key={hour}
+            className="absolute w-full border-t border-border"
+            style={{ top: `${(i / TOTAL_HOURS) * 100}%` }}
+          />
+        ))}
 
-        {/* Time blocks as cards */}
-        <div className="flex-1 p-1.5 overflow-y-auto flex flex-col gap-1">
-          {/* Existing blocks */}
-          {sortedBlocks.map((block) => {
-            const cat = BLOCK_CATEGORIES[block.category];
-            // Block card content
-            const blockCard = (
-              <div
-                className={cn(
-                  "px-2 py-1.5 rounded border-l-2 cursor-pointer",
-                  "hover:opacity-80 transition-opacity",
-                  cat?.bgClass || "bg-muted/50",
-                  cat?.borderClass || "border-muted-foreground/50"
-                )}
-              >
-                <div className="text-[10px] font-medium truncate">
-                  {block.title || cat?.label || "Event"}
-                </div>
-                <div className="text-[9px] text-muted-foreground">
-                  {formatTimeRange(block.startTime, block.endTime)}
-                </div>
-              </div>
-            );
-
-            // Wrap each block in popover for editing
-            return (
-              <QuickAddPopover
-                key={block.id}
-                date={date}
-                data={data}
-                onUpdate={onUpdate}
-                onViewFullDay={() => onDayClick?.(date)}
-                editBlockId={block.id}
-              >
-                {blockCard}
-              </QuickAddPopover>
-            );
-          })}
-          
-          {/* Always show Add button - fills remaining space when blocks exist, full space when empty */}
+        {/* Clickable areas for each hour slot - allows adding blocks */}
+        {HOURS.map((hour, i) => (
           <QuickAddPopover
+            key={`slot-${hour}`}
             date={date}
             data={data}
             onUpdate={onUpdate}
             onViewFullDay={() => onDayClick?.(date)}
+            defaultStartTime={`${hour.toString().padStart(2, "0")}:00`}
           >
-            <div 
-              onDoubleClick={handleDoubleClick}
-              className={cn(
-                "flex items-center justify-center cursor-pointer hover:bg-accent/20 transition-colors rounded",
-                sortedBlocks.length > 0 ? "py-2" : "flex-1"
-              )}
-            >
-              <span className="text-[10px] text-muted-foreground/50">+ Add</span>
-            </div>
+            <div
+              className="absolute w-full cursor-pointer hover:bg-accent/10 transition-colors"
+              style={{
+                top: `${(i / TOTAL_HOURS) * 100}%`,
+                height: `${(1 / TOTAL_HOURS) * 100}%`,
+              }}
+              onDoubleClick={() => onDayClick?.(date)}
+            />
           </QuickAddPopover>
-        </div>
+        ))}
+
+        {/* Time blocks */}
+        {allBlocks.map((block) => {
+          const cat = BLOCK_CATEGORIES[block.category];
+          const topPercent = timeToPercent(block.startTime);
+          const bottomPercent = timeToPercent(block.endTime);
+          const heightPercent = Math.max(bottomPercent - topPercent, 2); // Minimum 2%
+
+          return (
+            <QuickAddPopover
+              key={block.id}
+              date={date}
+              data={data}
+              onUpdate={onUpdate}
+              onViewFullDay={() => onDayClick?.(date)}
+              editBlockId={block.id}
+            >
+              <div
+                className={cn(
+                  "absolute left-0.5 right-0.5 rounded px-1 py-0.5 cursor-pointer overflow-hidden",
+                  "border-l-2 shadow-sm",
+                  "hover:opacity-90 hover:shadow transition-all",
+                  cat?.bgClass || "bg-muted/80",
+                  cat?.borderClass || "border-muted-foreground/50"
+                )}
+                style={{ 
+                  top: `${topPercent}%`, 
+                  height: `${heightPercent}%`,
+                  minHeight: '18px'
+                }}
+              >
+                <div className="text-[9px] font-medium truncate leading-tight">
+                  {block.title || cat?.label || "Event"}
+                </div>
+                <div className="text-[8px] text-muted-foreground truncate">
+                  {formatTime(block.startTime)}
+                </div>
+              </div>
+            </QuickAddPopover>
+          );
+        })}
+
+        {/* Current time indicator */}
+        {currentTimePercent !== null && (
+          <div
+            className="absolute left-0 right-0 z-10 pointer-events-none"
+            style={{ top: `${currentTimePercent}%` }}
+          >
+            <div className="relative flex items-center">
+              <div className="w-2 h-2 rounded-full bg-dot-5 -ml-1" />
+              <div className="flex-1 h-[2px] bg-dot-5" />
+            </div>
+          </div>
+        )}
       </div>
-      
-      {colorPickerPos && (
-        <DayColorPicker
-          currentColor={data.dayColor ?? null}
-          onColorChange={handleColorChange}
-          onClose={() => setColorPickerPos(null)}
-          position={colorPickerPos}
-          dateLabel={`${MONTH_NAMES_SHORT[date.getMonth()]} ${date.getDate()}`}
-        />
-      )}
-    </>
   );
 }

@@ -55,6 +55,8 @@ interface QuickAddPopoverProps {
   onViewFullDay?: () => void;
   /** If provided, opens in edit mode for this block */
   editBlockId?: string;
+  /** If provided, use this as the default start time for new blocks */
+  defaultStartTime?: string;
 }
 
 const CATEGORY_KEYS = Object.keys(BLOCK_CATEGORIES) as TimeBlockCategory[];
@@ -99,6 +101,7 @@ export function QuickAddPopover({
   onUpdate,
   onViewFullDay,
   editBlockId,
+  defaultStartTime,
 }: QuickAddPopoverProps) {
   // Use state to track mobile after mount to avoid hydration mismatch
   const [isMobile, setIsMobile] = useState(false);
@@ -164,7 +167,8 @@ export function QuickAddPopover({
           setShowCustomRepeat(false);
         }
       } else {
-        const start = getNextAvailableTime(blocks);
+        // Use defaultStartTime if provided, otherwise find next available slot
+        const start = defaultStartTime || getNextAvailableTime(blocks);
         const dateStr = formatDateString(date);
         setNewBlock({
           startTime: start,
