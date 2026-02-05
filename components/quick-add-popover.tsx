@@ -103,10 +103,59 @@ export function QuickAddPopover({
   editBlockId,
   defaultStartTime,
 }: QuickAddPopoverProps) {
+  // Only track if popover has ever been opened - defer all other state until needed
+  const [hasOpened, setHasOpened] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  // Handle open state change - track first open
+  const handleOpenChange = (newOpen: boolean) => {
+    if (newOpen && !hasOpened) {
+      setHasOpened(true);
+    }
+    setOpen(newOpen);
+  };
+
+  // Before first open, just render the trigger with click handler
+  if (!hasOpened) {
+    return (
+      <div onClick={() => handleOpenChange(true)}>
+        {children}
+      </div>
+    );
+  }
+
+  // After first open, render the full popover with all state
+  return (
+    <QuickAddPopoverContent
+      open={open}
+      onOpenChange={handleOpenChange}
+      date={date}
+      data={data}
+      onUpdate={onUpdate}
+      onViewFullDay={onViewFullDay}
+      editBlockId={editBlockId}
+      defaultStartTime={defaultStartTime}
+    >
+      {children}
+    </QuickAddPopoverContent>
+  );
+}
+
+// Separate component with all the heavy state - only mounted when actually needed
+function QuickAddPopoverContent({
+  children,
+  open,
+  onOpenChange,
+  date,
+  data,
+  onUpdate,
+  onViewFullDay,
+  editBlockId,
+  defaultStartTime,
+}: QuickAddPopoverProps & { open: boolean; onOpenChange: (open: boolean) => void }) {
   // Use state to track mobile after mount to avoid hydration mismatch
   const [isMobile, setIsMobile] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [open, setOpen] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState(60);
   const [repeatValue, setRepeatValue] = useState("none");
   const [showCustomRepeat, setShowCustomRepeat] = useState(false);
@@ -265,7 +314,7 @@ export function QuickAddPopover({
         a.startTime.localeCompare(b.startTime)
       ),
     });
-    setOpen(false);
+    onOpenChange(false);
   };
 
   const handleDeleteBlock = () => {
@@ -274,7 +323,7 @@ export function QuickAddPopover({
       ...data,
       timeBlocks: timeBlocks.filter((b) => b.id !== editingBlock.id),
     });
-    setOpen(false);
+    onOpenChange(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -461,7 +510,7 @@ export function QuickAddPopover({
           <button
             type="button"
             onClick={() => {
-              setOpen(false);
+              onOpenChange(false);
               onViewFullDay();
             }}
             className="text-sm px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
@@ -490,8 +539,8 @@ export function QuickAddPopover({
   // Mobile: use Drawer
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={setOpen}>
-        <div onClick={() => setOpen(true)}>{children}</div>
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <div onClick={() => onOpenChange(true)}>{children}</div>
         <DrawerContent>
           <DrawerHeader className="pb-0">
             <div className="flex items-center justify-between">
@@ -500,7 +549,7 @@ export function QuickAddPopover({
               </DrawerTitle>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => onOpenChange(false)}
                 className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted"
               >
                 <span className="text-xl leading-none">×</span>
@@ -515,7 +564,7 @@ export function QuickAddPopover({
 
   // Desktop: use Popover - clean, minimal header
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         {children}
       </PopoverTrigger>
@@ -527,7 +576,7 @@ export function QuickAddPopover({
       >
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={() => onOpenChange(false)}
           className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted"
         >
           <span className="text-lg leading-none">×</span>
